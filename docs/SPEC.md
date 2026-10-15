@@ -434,3 +434,8 @@ Reuse the approved look from the mockup (dark "phone at night", amber for clue m
 **Not implemented yet:** WebRTC serverless local mode (§12.3 Stage B), own-audio-file clock (§6.3.3), redistribution of a leaving player's clue cards (§8), "advanced per-draw override" (§2.2 rule 1; decks are digital or physical as a whole), Wake Lock fallback video for plain-http relay, chat-log export in PDF.
 
 **Needs a real-device playtest:** YouTube embed behaviour (the player must stay visible; autoplay needs the Start tap), microphone formats on iOS (audio/mp4) and Android (audio/webm), vibration (Android only), Screen Wake Lock behaviour on each phone.
+
+
+## Appendix B — Firebase transport (added v0.3)
+
+Goal: free hosting with no credit card. **GitHub Pages** serves the static app; **Firebase Realtime Database** (Spark plan) is only a message queue. The *host's browser* runs the same `Room` engine used by the Cloudflare Worker (`src/client/bus/host.ts`); other devices exchange messages with it through `rooms/{code}/q` (device→host) and `rooms/{code}/to/{device}` (host→device). Every payload is AES-GCM encrypted with a key derived from the group passphrase and the room code, so the database only ever holds ciphertext. The host saves an encrypted snapshot (and voicemails) so that a reload of the same device resumes the game; remotes re-announce themselves when the host's `epoch` changes. Presence: any message counts as a heartbeat; 30 s of silence marks a device offline and the next message reattaches it. Trade-off: the host's device is the server (keep the app open in front); Cloudflare mode has no such constraint.

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.wrangler/
+tmp-*/
+*.log
+.env
+# private plaintext game data: NEVER commit these (the encrypted copy lives in public/pack)
+content/
+assets/

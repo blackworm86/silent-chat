@@ -1,0 +1,649 @@
+{
+ "settings": {
+  "gameLengthMinutes": 90,
+  "clueSchedule": [
+   90,
+   80,
+   70,
+   60,
+   50,
+   45,
+   40,
+   35,
+   30,
+   20,
+   10
+  ],
+  "dealtClueTimestamps": [
+   80,
+   70,
+   60,
+   50,
+   45,
+   40,
+   35,
+   30,
+   20
+  ],
+  "swapRuleMinutes": 10,
+  "videoId": "ysOOFIOAy7A"
+ },
+ "characters": [
+  {
+   "id": "charlie",
+   "facilitator": true
+  },
+  {
+   "id": "evan",
+   "facilitator": false
+  },
+  {
+   "id": "julia",
+   "facilitator": false
+  },
+  {
+   "id": "jack",
+   "facilitator": false
+  },
+  {
+   "id": "dakota",
+   "facilitator": false
+  }
+ ],
+ "drives": [
+  {
+   "id": "drive_1"
+  },
+  {
+   "id": "drive_2"
+  },
+  {
+   "id": "drive_3"
+  },
+  {
+   "id": "drive_4"
+  },
+  {
+   "id": "drive_5"
+  }
+ ],
+ "locations": [
+  {
+   "id": "loc_lighthouse",
+   "copies": 2
+  },
+  {
+   "id": "loc_nightclub",
+   "copies": 2
+  },
+  {
+   "id": "loc_barn",
+   "copies": 2
+  },
+  {
+   "id": "loc_park",
+   "copies": 2
+  },
+  {
+   "id": "loc_station",
+   "copies": 2
+  }
+ ],
+ "suspects": [
+  {
+   "id": "sus_ryan",
+   "copies": 2
+  },
+  {
+   "id": "sus_halvert",
+   "copies": 2
+  },
+  {
+   "id": "sus_david",
+   "copies": 2
+  },
+  {
+   "id": "sus_bria",
+   "copies": 2
+  },
+  {
+   "id": "sus_cj",
+   "copies": 2
+  }
+ ],
+ "searchCards": [
+  {
+   "id": "search_van"
+  },
+  {
+   "id": "search_knife"
+  },
+  {
+   "id": "search_bottle"
+  },
+  {
+   "id": "search_blood"
+  },
+  {
+   "id": "search_money"
+  },
+  {
+   "id": "search_mask"
+  },
+  {
+   "id": "search_followed"
+  },
+  {
+   "id": "search_gun"
+  }
+ ],
+ "posterCount": 10,
+ "clueCards": [
+  {
+   "id": "clue_90",
+   "timestamp": 90,
+   "variant": null,
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "holder",
+     "role": "facilitator"
+    },
+    {
+     "type": "prepareMessage",
+     "channel": "group"
+    },
+    {
+     "type": "sendWhen",
+     "event": "firstSongEnds"
+    }
+   ]
+  },
+  {
+   "id": "clue_80_a",
+   "timestamp": 80,
+   "variant": "A",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "suspect"
+    }
+   ]
+  },
+  {
+   "id": "clue_80_b",
+   "timestamp": 80,
+   "variant": "B",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "suspect"
+    }
+   ]
+  },
+  {
+   "id": "clue_80_c",
+   "timestamp": 80,
+   "variant": "C",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "suspect"
+    }
+   ]
+  },
+  {
+   "id": "clue_70_a",
+   "timestamp": 70,
+   "variant": "A",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "location"
+    }
+   ]
+  },
+  {
+   "id": "clue_70_b",
+   "timestamp": 70,
+   "variant": "B",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "location"
+    }
+   ]
+  },
+  {
+   "id": "clue_70_c",
+   "timestamp": 70,
+   "variant": "C",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "location"
+    }
+   ]
+  },
+  {
+   "id": "clue_60_a",
+   "timestamp": 60,
+   "variant": "A",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "suspect"
+    }
+   ]
+  },
+  {
+   "id": "clue_60_b",
+   "timestamp": 60,
+   "variant": "B",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "suspect"
+    }
+   ]
+  },
+  {
+   "id": "clue_60_c",
+   "timestamp": 60,
+   "variant": "C",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "suspect"
+    }
+   ]
+  },
+  {
+   "id": "clue_50_a",
+   "timestamp": 50,
+   "variant": "A",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "location"
+    },
+    {
+     "type": "delay",
+     "minutes": 2,
+     "startsOn": "flip",
+     "display": "countdown",
+     "alertOnEnd": true
+    }
+   ]
+  },
+  {
+   "id": "clue_50_b",
+   "timestamp": 50,
+   "variant": "B",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "location"
+    }
+   ]
+  },
+  {
+   "id": "clue_50_c",
+   "timestamp": 50,
+   "variant": "C",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "location"
+    }
+   ]
+  },
+  {
+   "id": "clue_45_a",
+   "timestamp": 45,
+   "variant": "A",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "suspect"
+    }
+   ]
+  },
+  {
+   "id": "clue_45_b",
+   "timestamp": 45,
+   "variant": "B",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "location"
+    },
+    {
+     "type": "lightsOut",
+     "warning": true
+    }
+   ]
+  },
+  {
+   "id": "clue_45_c",
+   "timestamp": 45,
+   "variant": "C",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "location"
+    }
+   ]
+  },
+  {
+   "id": "clue_40_a",
+   "timestamp": 40,
+   "variant": "A",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "suspect"
+    }
+   ]
+  },
+  {
+   "id": "clue_40_b",
+   "timestamp": 40,
+   "variant": "B",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "suspect"
+    }
+   ]
+  },
+  {
+   "id": "clue_40_c",
+   "timestamp": 40,
+   "variant": "C",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "suspect"
+    }
+   ]
+  },
+  {
+   "id": "clue_35_a",
+   "timestamp": 35,
+   "variant": "A",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "location"
+    }
+   ]
+  },
+  {
+   "id": "clue_35_b",
+   "timestamp": 35,
+   "variant": "B",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "location"
+    },
+    {
+     "type": "delay",
+     "minutes": 2,
+     "startsOn": "flip",
+     "display": "countdown",
+     "alertOnEnd": true
+    },
+    {
+     "type": "unlock",
+     "what": "aliceCar"
+    }
+   ]
+  },
+  {
+   "id": "clue_35_c",
+   "timestamp": 35,
+   "variant": "C",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "draw",
+     "deck": "location"
+    },
+    {
+     "type": "delay",
+     "minutes": 2,
+     "startsOn": "flip",
+     "display": "countdown",
+     "alertOnEnd": true
+    }
+   ]
+  },
+  {
+   "id": "clue_30_a",
+   "timestamp": 30,
+   "variant": "A",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "drawFromRevealed",
+     "deck": "suspect",
+     "result": "culprit",
+     "putRestOnTopOfDeck": true
+    },
+    {
+     "type": "atClock",
+     "clock": "15:00",
+     "action": "coinFlip"
+    }
+   ]
+  },
+  {
+   "id": "clue_30_b",
+   "timestamp": 30,
+   "variant": "B",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "drawFromRevealed",
+     "deck": "suspect",
+     "result": "culprit",
+     "putRestOnTopOfDeck": true
+    }
+   ]
+  },
+  {
+   "id": "clue_30_c",
+   "timestamp": 30,
+   "variant": "C",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "drawFromRevealed",
+     "deck": "suspect",
+     "result": "culprit",
+     "putRestOnTopOfDeck": true
+    },
+    {
+     "type": "atClock",
+     "clock": "15:00",
+     "action": "outOfCharacterMessage",
+     "chooseTarget": true
+    }
+   ]
+  },
+  {
+   "id": "clue_20_a",
+   "timestamp": 20,
+   "variant": "A",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "drawFromRevealed",
+     "deck": "location",
+     "result": "aliceLocation"
+    },
+    {
+     "type": "giveCard",
+     "card": "clue_10",
+     "to": "chosenByHolder",
+     "hiddenUntil": "10:00"
+    }
+   ]
+  },
+  {
+   "id": "clue_20_b",
+   "timestamp": 20,
+   "variant": "B",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "drawFromRevealed",
+     "deck": "location",
+     "result": "aliceLocation"
+    },
+    {
+     "type": "giveCard",
+     "card": "clue_10",
+     "to": "chosenByHolder",
+     "hiddenUntil": "10:00"
+    }
+   ]
+  },
+  {
+   "id": "clue_20_c",
+   "timestamp": 20,
+   "variant": "C",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "muteSelf",
+     "minutes": 2,
+     "startsOn": "flip"
+    },
+    {
+     "type": "preface"
+    },
+    {
+     "type": "drawFromRevealed",
+     "deck": "location",
+     "result": "aliceLocation"
+    },
+    {
+     "type": "giveCard",
+     "card": "clue_10",
+     "to": "chosenByHolder",
+     "hiddenUntil": "10:00"
+    }
+   ]
+  },
+  {
+   "id": "clue_10_a",
+   "timestamp": 10,
+   "variant": "A",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "becomeAlice",
+     "announce": true
+    },
+    {
+     "type": "atClock",
+     "clock": "3:00",
+     "action": "coinFlip"
+    }
+   ]
+  },
+  {
+   "id": "clue_10_b",
+   "timestamp": 10,
+   "variant": "B",
+   "sensitive": true,
+   "removableByFacilitator": true,
+   "effects": [
+    {
+     "type": "atClock",
+     "clock": "3:00",
+     "action": "coinFlip",
+     "tailsEffect": {
+      "type": "lockChat",
+      "permanent": true
+     }
+    }
+   ]
+  },
+  {
+   "id": "clue_10_c",
+   "timestamp": 10,
+   "variant": "C",
+   "sensitive": false,
+   "removableByFacilitator": false,
+   "effects": [
+    {
+     "type": "atClock",
+     "clock": "8:00",
+     "action": "drawTopUntilNot",
+     "deck": "suspect",
+     "exclude": "culprit",
+     "result": "accomplice"
+    },
+    {
+     "type": "atClock",
+     "clock": "2:00",
+     "action": "captured",
+     "lockChat": true
+    }
+   ]
+  }
+ ]
+}

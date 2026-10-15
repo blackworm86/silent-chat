@@ -1,0 +1,44 @@
+{
+  "name": "alice-is-missing-companion",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "PRIVATE companion app for Alice Is Missing (Italian/English). Not for publication.",
+  "scripts": {
+    "rules": "node tools/make-rules.mjs",
+    "pack": "node tools/pack.mjs",
+    "dev": "npm run rules && vite",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json",
+    "test": "npm run rules && vitest run",
+    "build": "npm run rules && tsc --noEmit && vite build && node tools/pack.mjs && node tools/sw-gen.mjs",
+    "relay": "npm run rules && tsx relay/relay.ts",
+    "preview": "vite preview",
+    "deploy": "npm run build && wrangler deploy",
+    "cf:dev": "npm run build && wrangler dev",
+    "pack:dev": "node tools/pack.mjs --out public/pack",
+    "build:pages": "npm run rules && tsc --noEmit && vite build && node tools/sw-gen.mjs"
+  },
+  "dependencies": {
+    "@preact/signals": "^2.11.3",
+    "firebase": "^13.0.0",
+    "preact": "^11.0.1",
+    "qrcode-generator": "^2.0.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261015.1",
+    "@preact/preset-vite": "^2.10.6",
+    "@testing-library/preact": "^3.2.4",
+    "@types/node": "^26.6.5",
+    "@types/ws": "^8.18.2",
+    "jsdom": "^30.1.3",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5",
+    "wrangler": "^4.151.0",
+    "ws": "^8.22.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

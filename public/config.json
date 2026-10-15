@@ -1,0 +1,10 @@
+{
+  "transport": "firebase",
+  "firebase": {
+    "apiKey": "YOUR-API-KEY",
+    "authDomain": "YOUR-PROJECT.firebaseapp.com",
+    "databaseURL": "https://YOUR-PROJECT-default-rtdb.europe-west1.firebasedatabase.app",
+    "projectId": "YOUR-PROJECT",
+    "appId": "YOUR-APP-ID"
+  }
+}

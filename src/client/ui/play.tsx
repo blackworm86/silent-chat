@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import {
   Menu, Lock, MicOff, Hourglass, Flashlight, CarFront, Dice5, Coins, Mail, Smartphone, Layers, MessageCircle, LayoutGrid,
-  NotebookPen, Volume2, SendHorizontal, ShieldAlert, Trash2, Undo2, Search, Pause, Play, Bell, ChevronRight, Sparkles
+  NotebookPen, Volume2, SendHorizontal, ShieldAlert, Trash2, Undo2, Search, Pause, Play, Bell, ChevronRight, Sparkles, Reply, X
 } from 'lucide-preact';
 import { view, send, chat, typingMap, sendTyping, toasts, dismissToast, errors, dismissError } from '../net';
 import { C, tx, clueCard, clueVariants, cardName, searchText, charName, fmtClock, dayWord } from '../content';
@@ -309,6 +309,7 @@ function CardsTab({ v }: { v: View }) {
 // =====================================================================
 // Chat
 // =====================================================================
+const composing = signal(false);
 const readMap = signal<Record<string, number>>({});
 const convOf = (m: ChatMsg, me: number): string | null =>
   m.to === 'group' ? 'group' : m.from === me ? String(m.to) : m.to === me ? String(m.from) : null;
@@ -318,8 +319,24 @@ export function unreadCount(v: View): number {
   return chat.value.filter((m) => m.kind !== 'system' && m.from !== me && !m.deleted && m.id > (readMap.value[convOf(m, me) ?? 'group'] ?? 0)).length;
 }
 
-function Bubble({ m, v, mine }: { m: ChatMsg; v: View; mine: boolean }) {
-  if (m.deleted) return <div class="sysmsg">{t('msgRemoved')}</div>;
+interface MenuState { m: ChatMsg; mine: boolean; x: number; y: number }
+
+function QuoteBox({ m, v }: { m: ChatMsg; v: View }) {
+  if (m.replyTo == null) return null;
+  const q = chat.value.find((x) => x.id === m.replyTo);
+  const gone = !q || q.deleted;
+  const who = q && !gone ? (q.as ? charName(q.as, seatName(v, q.from)) : seatName(v, q.from)) : '';
+  return (
+    <div class="quote">
+      {!gone && <b>{who}</b>}
+      <span>{gone ? t('msgRemoved') : q!.text}</span>
+    </div>
+  );
+}
+
+function Bubble({ m, v, mine, first, last, onMenu }: { m: ChatMsg; v: View; mine: boolean; first: boolean; last: boolean; onMenu: (s: MenuState) => void }) {
+  const timer = useRef<number | null>(null);
+  const start = useRef<{ x: number; y: number } | null>(null);
   if (m.kind === 'safety') {
     const who = seatName(v, m.from);
     const label = m.safety === 'x' ? t('xUsed', { name: who }) : m.safety === 'line' ? t('lineAdded', { name: who }) : t('veilAdded', { name: who });
@@ -336,13 +353,42 @@ function Bubble({ m, v, mine }: { m: ChatMsg; v: View; mine: boolean }) {
     return <div class="sysmsg">{msg}</div>;
   }
   const sender = m.as ? charName(m.as, seatName(v, m.from)) : seatName(v, m.from);
+  const open = (x: number, y: number) => { if (!m.deleted) onMenu({ m, mine, x, y }); };
+  const cancel = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } };
   return (
-    <div class={`msgrow ${mine ? 'mine' : ''}`}>
-      {!mine && <Avatar seat={m.from ?? 0} size={28} />}
+    <div class={`msgrow ${mine ? 'mine' : ''} ${first ? 'first' : ''}`}>
+      {!mine && (last && !m.deleted ? <Avatar seat={m.from ?? 0} size={28} /> : <span class="av-gap" />)}
       <div class="msgcol">
-        {!mine && <div class="sender">{sender}</div>}
-        <div class={`bubble ${mine ? 'out' : 'in'} ${m.ooc ? 'ooc' : ''}`}>{m.text}</div>
-        {mine && <button class="del" aria-label={t('deleteMsg')} onClick={() => send({ type: 'chatDelete', id: m.id })}><Trash2 size={13} /></button>}
+        {!mine && first && <div class="sender">{sender}</div>}
+        <div
+          class={`bubble ${mine ? 'out' : 'in'} ${m.ooc ? 'ooc' : ''} ${m.deleted ? 'gone' : ''} ${first ? 'f' : ''} ${last ? 'l' : ''}`}
+          onContextMenu={(e) => { e.preventDefault(); open(e.clientX, e.clientY); }}
+          onPointerDown={(e) => {
+            start.current = { x: e.clientX, y: e.clientY };
+            cancel();
+            timer.current = window.setTimeout(() => { timer.current = null; open(start.current!.x, start.current!.y); }, 420);
+          }}
+          onPointerMove={(e) => { const s0 = start.current; if (s0 && (Math.abs(e.clientX - s0.x) > 8 || Math.abs(e.clientY - s0.y) > 8)) cancel(); }}
+          onPointerUp={cancel} onPointerCancel={cancel} onPointerLeave={cancel}
+        >
+          {m.deleted ? t('msgRemoved') : <><QuoteBox m={m} v={v} />{m.text}</>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MsgMenu({ s, onClose, onReply, onPrivate }: { s: MenuState; onClose: () => void; onReply: () => void; onPrivate: () => void }) {
+  const W = 200, H = s.mine ? 100 : 100;
+  const left = Math.max(8, Math.min(s.x - W / 2, window.innerWidth - W - 8));
+  const top = Math.max(8, Math.min(s.y - 20, window.innerHeight - H - 8));
+  return (
+    <div class="ctx-back" onPointerDown={(e) => { e.preventDefault(); onClose(); }} onContextMenu={(e) => { e.preventDefault(); onClose(); }}>
+      <div class="ctx" role="menu" style={{ left: `${left}px`, top: `${top}px`, width: `${W}px` }} onPointerDown={(e) => e.stopPropagation()}>
+        <button role="menuitem" onClick={onReply}><Reply size={18} />{t('reply')}</button>
+        {s.mine
+          ? <button role="menuitem" class="danger" onClick={() => { send({ type: 'chatDelete', id: s.m.id }); onClose(); }}><Trash2 size={18} />{t('deleteMsg')}</button>
+          : <button role="menuitem" onClick={onPrivate}><Lock size={18} />{t('privateMessage')}</button>}
       </div>
     </div>
   );
@@ -371,6 +417,9 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
   const [conv, setConv] = useState<string>('group');
   const [text, setText] = useState('');
   const [safety, setSafety] = useState(false);
+  const [menu, setMenu] = useState<MenuState | null>(null);
+  const [replyTo, setReplyTo] = useState<ChatMsg | null>(null);
+  const inputEl = useRef<HTMLInputElement>(null);
   const thread = useRef<HTMLDivElement>(null);
   const lastTyping = useRef(0);
   const msgs = chat.value.filter((m) => convOf(m, me) === conv);
@@ -387,9 +436,12 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
 
   const submit = () => {
     const tt = text.trim(); if (!tt) return;
-    send({ type: 'chat', to: conv === 'group' ? 'group' : Number(conv), text: tt });
-    setText('');
+    send({ type: 'chat', to: conv === 'group' ? 'group' : Number(conv), text: tt, ...(replyTo ? { replyTo: replyTo.id } : {}) });
+    setText(''); setReplyTo(null);
+    inputEl.current?.focus(); // keep the keyboard open, like a real chat app
   };
+  const focusInput = () => setTimeout(() => inputEl.current?.focus(), 0);
+  const switchConv = (k: string) => { setConv(k); setReplyTo(null); };
   const unreadOf = (k: string) => chat.value.filter((m) => m.kind !== 'system' && m.from !== me && !m.deleted && convOf(m, me) === k && m.id > (readMap.value[k] ?? 0)).length;
 
   return (
@@ -397,7 +449,7 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
       {!groupOnly && (
         <div class="convs" role="tablist">
           {['group', ...others.map((o) => String(o.seat))].map((k) => (
-            <button role="tab" aria-selected={conv === k} class={`chip ${conv === k ? 'on' : ''}`} key={k} onClick={() => setConv(k)}>
+            <button role="tab" aria-selected={conv === k} class={`chip ${conv === k ? 'on' : ''}`} key={k} onClick={() => switchConv(k)}>
               {k === 'group' ? t('group') : seatName(v, Number(k))}{unreadOf(k) > 0 && <span class="badge-n">{unreadOf(k)}</span>}
             </button>
           ))}
@@ -405,19 +457,35 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
       )}
       <div class="thread" ref={thread} aria-live="polite">
         {msgs.length === 0 && <div class="thread-empty"><MessageCircle size={28} /><b>{t('emptyChatTitle')}</b><span>{t('silentBanner')}</span></div>}
-        {msgs.map((m) => <Bubble key={m.id} m={m} v={v} mine={m.from === me && m.kind === 'msg'} />)}
+        {msgs.map((m, i) => {
+          const grp = (x?: ChatMsg) => (x && x.kind === 'msg' ? `${x.from}|${x.as ?? ''}` : null);
+          const key = grp(m);
+          const first = !key || grp(msgs[i - 1]) !== key;
+          const last = !key || grp(msgs[i + 1]) !== key;
+          return <Bubble key={m.id} m={m} v={v} mine={m.from === me && m.kind === 'msg'} first={first} last={last} onMenu={setMenu} />;
+        })}
         {typing && <div class="typing" aria-label={t('typing')}><i /><i /><i /></div>}
       </div>
       {lock && <div class="lock-note">{t('lockedHint')}</div>}
+      {replyTo && (
+        <div class="replybar">
+          <div class="quote"><b>{replyTo.as ? charName(replyTo.as, seatName(v, replyTo.from)) : seatName(v, replyTo.from)}</b><span>{replyTo.text}</span></div>
+          <button class="icon-btn" aria-label={t('cancel')} onClick={() => setReplyTo(null)}><X size={18} /></button>
+        </div>
+      )}
       <div class="composer">
         <button class="xbtn" onClick={() => send({ type: 'safety', kind: 'x', text: '' })} aria-label={t('xCard')}>X</button>
         <button class="safety-btn" onClick={() => setSafety(true)} aria-label={t('addLineVeil')}><ShieldAlert size={20} /></button>
-        <input class="input" value={text} enterKeyHint="send" placeholder={lock ? t('chatLocked') : t('messageAs', { name: seatName(v, me, true) })}
+        <input class="input" ref={inputEl} value={text} enterKeyHint="send" placeholder={lock ? t('chatLocked') : t('messageAs', { name: seatName(v, me, true) })}
           onInput={(e) => { const val = (e.target as HTMLInputElement).value; setText(val); if (Date.now() - lastTyping.current > 2500 && val) { lastTyping.current = Date.now(); sendTyping(conv === 'group' ? 'group' : Number(conv)); } }}
+          onFocus={() => { composing.value = true; }} onBlur={() => { composing.value = false; }}
           onKeyDown={(e) => e.key === 'Enter' && submit()} />
-        <button class="send" disabled={!text.trim()} onClick={submit} aria-label={t('send')}><SendHorizontal size={20} /></button>
+        <button class="send" disabled={!text.trim()} onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()} onClick={submit} aria-label={t('send')}><SendHorizontal size={20} /></button>
       </div>
       {safety && <SafetySheet onClose={() => setSafety(false)} />}
+      {menu && <MsgMenu s={menu} onClose={() => setMenu(null)}
+        onReply={() => { setReplyTo(menu.m); setMenu(null); focusInput(); }}
+        onPrivate={() => { switchConv(String(menu.m.from)); setMenu(null); focusInput(); }} />}
     </div>
   );
 }
@@ -533,7 +601,7 @@ export function PlayScreen({ v, onMenu }: { v: View; onMenu?: () => void }) {
     ...(v.me.isSound ? [{ k: 'sound' as Tab, icon: <Volume2 size={22} />, label: t('tabSound') }] : [])
   ];
   return (
-    <div class="play">
+    <div class={`play ${composing.value && tab === 'chat' ? 'composing' : ''}`}>
       <ClockBar v={v} onMenu={onMenu} />
       {ready && tab !== 'cards' && (
         <button class="clue-banner" onClick={() => setTab('cards')}><Sparkles size={20} /><span>{t('clueReadyBanner', { n: ready.ts })}</span><ChevronRight size={20} /></button>

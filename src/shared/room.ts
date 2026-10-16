@@ -653,7 +653,9 @@ export class Room {
       const used = s.chat.some((m) => m.kind === 'msg' && m.from === p.seat && m.at >= (s.log.filter((l) => l.code === 'phase' && l.params?.phase === 'final').pop()?.at ?? 0) && !m.ooc);
       if (used && !ooc) this.err(ctx, 'final_used');
     }
-    this.pushChat({ kind: 'msg', from: p.seat, as: p.identity === 'alice' ? 'alice' : p.characterId, to, text, ooc });
+    const rid = Number(a.replyTo);
+    const quoted = rid ? s.chat.find((x) => x.id === rid && x.kind === 'msg' && this.canSee(x, p.seat)) : undefined;
+    this.pushChat({ kind: 'msg', from: p.seat, as: p.identity === 'alice' ? 'alice' : p.characterId, to, text, ooc, ...(quoted ? { replyTo: quoted.id } : {}) });
   }
 
   // ---------- decks ----------

@@ -74,6 +74,7 @@ export interface ChatMsg {
   text: string; ooc: boolean; deleted: boolean;
   code?: string; params?: Record<string, unknown>;
   safety?: 'x' | 'line' | 'veil';
+  replyTo?: number;
 }
 
 export interface SafetyItem { id: number; kind: 'line' | 'veil'; text: string; by: number | null; at: number }

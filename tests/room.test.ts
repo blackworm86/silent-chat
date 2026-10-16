@@ -310,3 +310,23 @@ describe('persistence', () => {
     void h2; void vmSaved;
   });
 });
+
+describe('deleting a game', () => {
+  it('only the host can delete it; every device is told and the room is gone', () => {
+    const h = new Harness();
+    let destroyed = 0;
+    (h.room as any).io.destroy = () => { destroyed++; };
+    h.join('p0', { create: true }); h.join('p1'); h.join('p2');
+    h.do('p1', { type: 'deleteRoom' });
+    expect(h.err('p1')).toBe('host_only');
+    expect(h.room.s).not.toBeNull();
+    expect(destroyed).toBe(0);
+    h.do('p0', { type: 'deleteRoom' });
+    for (const id of ['p0', 'p1', 'p2']) expect(h.inbox.get(id)!.at(-1)).toMatchObject({ t: 'err', code: 'deleted' });
+    expect(h.room.s).toBeNull();
+    expect(destroyed).toBe(1);
+    h.clearInbox();
+    h.join('p1');                                        // a returning player finds nothing
+    expect(h.inbox.get('p1')![0]).toMatchObject({ t: 'err', code: 'no_room' });
+  });
+});

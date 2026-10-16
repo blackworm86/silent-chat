@@ -26,7 +26,15 @@ function getEntry(code: string): Entry {
   const sockets = new Map<string, WebSocket>();
   const room = new Room({
     now: () => Date.now(),
-    send: (deviceId, m: ServerMsg) => { const ws = sockets.get(deviceId); if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); }
+    send: (deviceId, m: ServerMsg) => { const ws = sockets.get(deviceId); if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); },
+    destroy: () => {
+      // the host deleted the game: let the goodbye messages go out, then drop the room
+      setTimeout(() => {
+        for (const ws of sockets.values()) { try { ws.close(1000, 'deleted'); } catch { /* ignore */ } }
+        if (e) clearInterval(e.timer);
+        if (rooms.get(code) === e) rooms.delete(code);
+      }, 50);
+    }
   });
   e = { room, sockets, last: Date.now(), timer: setInterval(() => room.tick(), 1000) };
   rooms.set(code, e);

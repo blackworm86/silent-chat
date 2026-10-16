@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { config } from '../config';
+import { CircleCheck, CircleX } from 'lucide-preact';
 import { t, Btn, Panel, Muted } from './common';
 import type { Key } from '../i18n';
 
@@ -47,12 +48,18 @@ export function Diag() {
 
   return (
     <div class="page">
-      <header class="topbar"><div class="phase">{t('diagTitle')}</div><a class="btn ghost small auto" href="#/">{t('back')}</a></header>
-      <main class="main stack">
+      <header class="topbar"><div class="title">{t('diagTitle')}</div><a class="btn ghost small auto" href="#/">{t('back')}</a></header>
+      <main class="main no-bar">
         <Muted>{t('diagIntro')}</Muted>
         <Btn disabled={busy} onClick={run}>{busy ? '…' : t('diagRun')}</Btn>
         <Panel>
-          {steps.map((s, i) => <p key={i}>{s.ok ? '✅' : '❌'} <b>{t(s.k)}</b>{s.msg && <><br /><span class={s.ok ? 'muted' : 'warn'}>{s.msg}</span></>}</p>)}
+          {steps.length === 0 && <Muted small>—</Muted>}
+          {steps.map((s, i) => (
+            <p key={i} class="row nowrap" style={{ alignItems: 'flex-start' }}>
+              {s.ok ? <CircleCheck size={20} class="ok" /> : <CircleX size={20} class="warn" />}
+              <span><b>{t(s.k)}</b>{s.msg && <><br /><span class={`small ${s.ok ? 'muted' : 'warn'}`}>{s.msg}</span></>}</span>
+            </p>
+          ))}
           {done && <p class="ok"><b>{t('diagOk')}</b></p>}
         </Panel>
       </main>

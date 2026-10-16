@@ -6,7 +6,7 @@ import { encJson, decJson, encText, decText } from './crypto';
 export interface HostOpts {
   code: string; deviceId: string; bus: Bus; key: CryptoKey;
   onLocal: (m: ServerMsg) => void;
-  now?: () => number; tickMs?: number; staleMs?: number; beatMs?: number; saveMs?: number;
+  now?: () => number; tickMs?: number; staleMs?: number; beatMs?: number; saveMs?: number; drainMs?: number;
 }
 
 /**
@@ -35,7 +35,8 @@ export class HostEngine {
       now: () => this.now(),
       send: (d, m) => this.sendOut(d, m),
       persist: (s) => this.queueSave(s),
-      persistVm: (seat, vm) => { void this.saveVm(seat, vm); }
+      persistVm: (seat, vm) => { void this.saveVm(seat, vm); },
+      destroy: () => { void this.destroyRoom(); }
     };
     let resumed = false;
     if (mode === 'resume') {
@@ -124,6 +125,18 @@ export class HostEngine {
   }
   private async saveVm(seat: number, vm: { mime: string; b64: string }) {
     try { await this.o.bus.saveVm(this.o.code, seat, await encText(this.o.key, JSON.stringify(vm))); } catch { /* ignore */ }
+  }
+
+  /** The host deleted the game: flag it for every device, let the last messages drain, then erase the room. */
+  private async destroyRoom() {
+    if (this.saveTimer) { clearTimeout(this.saveTimer); this.saveTimer = null; }
+    this.snap = null;
+    this.timers.forEach(clearInterval); this.timers = [];
+    this.unsubs.forEach((u) => u()); this.unsubs = [];
+    try { await this.o.bus.setMeta(this.o.code, { epoch: this.epoch, hb: this.now(), created: this.now(), v: 1, closed: true }); } catch { /* ignore */ }
+    await new Promise((r) => setTimeout(r, this.o.drainMs ?? 1500));
+    this.stopped = true;
+    try { await this.o.bus.removeRoom(this.o.code); } catch { /* ignore */ }
   }
 
   async stop() {

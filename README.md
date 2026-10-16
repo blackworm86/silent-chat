@@ -27,7 +27,11 @@ How it works: the device that *creates* the room runs the game engine in its bro
 
 ## Playing
 
-Host creates a game → friends scan the QR → choose **Full Digital** or **Chat + Game Aids**, and the sound source (**host's device** or **shared tablet**) → follow the on-screen steps. Everything the rulebook asks for is on screen; the red **X** is always one tap away.
+Host creates a game → friends scan the QR (or get the link through **Share invite**) → the host picks **Full Digital** or **Chat + Game Aids** and the sound source (**host's device** or **shared tablet**) under *Game settings* → follow the on-screen steps. Everything the rulebook asks for is on screen; the red **X** is always one tap away.
+
+**Deleting a game:** the host can delete a game at any time from the menu (☰ → *Delete game*), or from *Your games* on the home screen. Everyone connected is told the game was deleted; the room, its chat and its voicemails are erased (Firebase, relay and Cloudflare alike).
+
+The interface is designed for phones first; see `docs/UX-REVIEW.md` for the mobile usability review behind it.
 
 ## Without internet (local relay)
 ```bash
@@ -37,7 +41,7 @@ YouTube is unavailable offline (manual clock; play the music from another device
 
 ## Develop / test
 ```bash
-npm test          # 37 tests: rules engine (240 random games), relay, Firebase-style transport, encryption, UI
+npm test          # 47 tests: rules engine (240 random games), relay, Firebase-style transport, game deletion, encryption, UI
 npm run typecheck
 ```
 `src/shared` rules engine · `src/client` Preact app (`bus/` = Firebase transport) · `worker` Cloudflare · `relay` local server · `tools` · `docs/SPEC.md`.

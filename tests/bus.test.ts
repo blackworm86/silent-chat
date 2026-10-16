@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { MemoryBus } from '../src/client/bus/memory';
 import { HostEngine } from '../src/client/bus/host';
 import { openRemote } from '../src/client/bus/remote';
-import { connectBus } from '../src/client/bus/connect';
+import { connectBus, deleteRoomOnBus } from '../src/client/bus/connect';
 import { deriveBusKey, kdf } from '../src/client/bus/crypto';
 
 kdf.iterations = 1000;   // tests only
@@ -152,4 +152,42 @@ describe('Firebase-style transport (host browser = server) over an in-memory bus
     expect(h.room.s!.players[1].deviceId).toBe('eve');
     r.close(); await h.stop();
   });
+});
+
+describe('Firebase-style transport: deleting a game', () => {
+  it('host deletes from inside the room: remotes get "deleted", the bus is emptied', async () => {
+    const bus = new MemoryBus();
+    const fatals: Record<string, string[]> = { host: [], ann: [] };
+    const join = (id: string, create = false) => connectBus(bus, {
+      code: 'DEL001', role: 'player', create, name: id, deviceId: id, pass: 'friends-pass', storage: store(),
+      onMsg: (m) => { if (m.t === 'err' && m.code === 'deleted') fatals[id].push('deleted'); }, onFatal: (c) => fatals[id].push(c)
+    });
+    const host = await join('host', true);
+    await join('ann');
+    await until(() => (bus as any).meta.has('DEL001'), 4000, 'room');
+    await sleep(100);
+    host!.send({ t: 'do', a: { type: 'deleteRoom' } });
+    await until(() => fatals.ann.includes('deleted'), 6000, 'remote told');
+    expect(fatals.host).toContain('deleted');
+    await until(() => !(bus as any).meta.has('DEL001'), 6000, 'room removed');
+    expect(await bus.loadSnapshot('DEL001')).toBeNull();
+    // a late device cannot resurrect it as a player
+    const late: string[] = [];
+    const w = await connectBus(bus, { code: 'DEL001', role: 'player', create: false, name: 'x', deviceId: 'x', pass: 'friends-pass', storage: store(), onMsg: () => {}, onFatal: (c) => late.push(c) });
+    expect(w).toBeNull();
+    expect(late).toEqual(['no_room']);
+  }, 20000);
+
+  it('host deletes from the home screen (engine not running): connected devices still get "deleted"', async () => {
+    const bus = new MemoryBus();
+    const fatals: string[] = [];
+    const s = store();
+    const host = await connectBus(bus, { code: 'DEL002', role: 'player', create: true, name: 'h', deviceId: 'h', pass: 'p', storage: s, onMsg: () => {}, onFatal: () => {} });
+    await connectBus(bus, { code: 'DEL002', role: 'player', create: false, name: 'a', deviceId: 'a', pass: 'p', storage: store(), onMsg: () => {}, onFatal: (c) => fatals.push(c) });
+    host!.close();                                         // the host left the room page
+    await sleep(50);
+    await deleteRoomOnBus(bus, 'DEL002', 50);
+    await until(() => fatals.includes('deleted'), 4000, 'remote told');
+    expect(await bus.getMeta('DEL002')).toBeNull();
+  }, 20000);
 });

@@ -21,7 +21,14 @@ export class RoomDO implements DurableObject {
         if (ws && ws.readyState === 1) ws.send(JSON.stringify(m));
       },
       persist: (snap: string) => this.schedulePersist(snap),
-      persistVm: (seat: number, vm: { mime: string; b64: string }) => { void this.state.storage.put('vm:' + seat, vm).catch(() => { /* too large: ignore */ }); }
+      persistVm: (seat: number, vm: { mime: string; b64: string }) => { void this.state.storage.put('vm:' + seat, vm).catch(() => { /* too large: ignore */ }); },
+      destroy: () => {
+        // the host deleted the game: erase everything stored for this room and hang up
+        if (this.saveTimer) { clearTimeout(this.saveTimer); this.saveTimer = null; }
+        this.pending = null;
+        void this.state.storage.deleteAll();
+        setTimeout(() => { for (const ws of this.sockets.values()) { try { ws.close(1000, 'deleted'); } catch { /* ignore */ } } }, 50);
+      }
     };
     this.io = io;
     this.state.blockConcurrencyWhile(async () => {

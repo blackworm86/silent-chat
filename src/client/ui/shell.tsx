@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'preact/hooks';
-import { view, send, connect, disconnect, fatal, conn, hostOffline } from '../net';
+import { BookOpen, NotebookPen, ShieldAlert, SlidersHorizontal, Undo2, LogOut, Trash2, Menu, WifiOff, Monitor, CircleAlert } from 'lucide-preact';
+import { view, send, connect, disconnect, fatal, conn, hostOffline, deleteSession } from '../net';
 import { isFirebase } from '../config';
 import { lang, setLang, forget } from '../content';
-import { t, Btn, Panel, Muted, Modal } from './common';
+import { t, Btn, Muted, Modal, ListRow, Section, ConfirmSheet, TextLink, Waiting } from './common';
 import { Lobby, Safety, Intro, Characters, Drives, Turns, Relations, Voicemail, Deal, Rules, Ready, QuickGuide } from './setup';
 import { PlayScreen, NotesTab, HostPanel, LightsOut, Toasts } from './play';
 import { Final, Playback, Debrief, Done } from './end';
@@ -21,6 +22,24 @@ export function useWakeLock(on: boolean) {
   }, [on]);
 }
 
+export function FatalScreen({ code }: { code: string }) {
+  return (
+    <div class="page center"><div class="narrow-box stack loose center-text">
+      <CircleAlert size={36} class="faint" style={{ margin: '0 auto' }} />
+      <h2>{t(('fatal_' + code) as keyof typeof dict.en)}</h2>
+      <a class="btn ghost" href="#/">{t('backHome')}</a>
+    </div></div>
+  );
+}
+export function Connecting({ offline }: { offline?: boolean }) {
+  return (
+    <div class="page center"><div class="narrow-box stack">
+      <Waiting>{conn.value === 'open' ? t('loading') : t('connecting')}…</Waiting>
+      {offline && <p class="warn small center-text"><WifiOff size={14} style={{ verticalAlign: '-2px' }} /> {t('hostOffline')}</p>}
+    </div></div>
+  );
+}
+
 export function PlayerRoom({ code, create }: { code: string; create: boolean }) {
   const [name, setName] = useState(localStorage.getItem('aim.name') || '');
   const [draft, setDraft] = useState('');
@@ -31,28 +50,29 @@ export function PlayerRoom({ code, create }: { code: string; create: boolean }) 
   }, [code, name]);
   useWakeLock(true);
   if (!name) {
+    const go = () => { if (draft.trim()) { localStorage.setItem('aim.name', draft.trim()); setName(draft.trim()); } };
     return (
-      <div class="page center"><Panel>
-        <h2>{t('yourNameFirst')}</h2>
-        <input class="input" value={draft} maxLength={20} onInput={(e) => setDraft((e.target as HTMLInputElement).value)} onKeyDown={(e) => { if (e.key === 'Enter' && draft.trim()) { localStorage.setItem('aim.name', draft.trim()); setName(draft.trim()); } }} />
-        <Btn disabled={!draft.trim()} onClick={() => { localStorage.setItem('aim.name', draft.trim()); setName(draft.trim()); }}>{t('continue')}</Btn>
-      </Panel></div>
+      <div class="page center"><div class="narrow-box stack loose">
+        <div class="stack tight">
+          <span class="brand">Silent Chat</span>
+          <Muted>{t('joiningGame', { code })}</Muted>
+        </div>
+        <div class="field">
+          <h2>{t('yourNameFirst')}</h2>
+          <input class="input" autoFocus autocomplete="given-name" enterKeyHint="go" value={draft} maxLength={20} placeholder={t('namePlaceholder')}
+            onInput={(e) => setDraft((e.target as HTMLInputElement).value)} onKeyDown={(e) => e.key === 'Enter' && go()} />
+        </div>
+        <Btn disabled={!draft.trim()} onClick={go}>{t('continue')}</Btn>
+      </div></div>
     );
   }
   const v = view.value;
-  if (fatal.value) {
-    return (
-      <div class="page center"><Panel>
-        <h2>{t(('fatal_' + fatal.value) as keyof typeof dict.en)}</h2>
-        <a class="btn ghost" href="#/">{t('back')}</a>
-      </Panel></div>
-    );
-  }
-  if (!v) return <div class="page center"><div><p>{conn.value === 'open' ? t('loading') : t('connecting')}…</p>{hostOffline.value && <p class="warn">{t('hostOffline')}</p>}</div></div>;
+  if (fatal.value) return <FatalScreen code={fatal.value} />;
+  if (!v) return <Connecting offline={hostOffline.value} />;
   return <Shell v={v} />;
 }
 
-export function Screen({ v }: { v: View }) {
+export function Screen({ v, onMenu }: { v: View; onMenu?: () => void }) {
   switch (v.phase) {
     case 'lobby': return <Lobby v={v} />;
     case 'safety': return <Safety v={v} />;
@@ -66,7 +86,7 @@ export function Screen({ v }: { v: View }) {
     case 'deal': return <Deal v={v} />;
     case 'rules': return <Rules v={v} />;
     case 'ready': return <Ready v={v} />;
-    case 'play': return <PlayScreen v={v} />;
+    case 'play': return <PlayScreen v={v} onMenu={onMenu} />;
     case 'final': return <Final v={v} />;
     case 'playback': return <Playback v={v} />;
     case 'debrief': return <Debrief v={v} />;
@@ -74,39 +94,79 @@ export function Screen({ v }: { v: View }) {
   }
 }
 
+const CAN_GO_BACK = ['safety', 'intro', 'characters', 'drives', 'intros', 'relations', 'voicemail', 'hunches', 'deal', 'rules'];
+type Sheet = null | 'menu' | 'guide' | 'notes' | 'safety' | 'host' | 'delete';
+
 function Shell({ v }: { v: View }) {
-  const [menu, setMenu] = useState<null | 'menu' | 'guide' | 'notes' | 'safety' | 'host'>(null);
-  const showX = !['lobby', 'safety', 'done'].includes(v.phase);
+  const [sheet, setSheet] = useState<Sheet>(null);
+  const [deleting, setDeleting] = useState(false);
+  const close = () => setSheet(null);
+  useEffect(() => { window.scrollTo(0, 0); }, [v.phase]);     // every phase starts at its top
+  const showX = !['lobby', 'safety', 'play', 'done'].includes(v.phase);
+  const noBar = ['done'].includes(v.phase);
+  const doDelete = async () => {
+    setDeleting(true);
+    try { await deleteSession(v.code); } finally { setDeleting(false); }
+    location.hash = '#/';
+  };
   return (
     <div class="page">
       <LightsOut v={v} />
-      <header class="topbar">
-        <div><div class="phase">{t(('phase_' + v.phase) as keyof typeof dict.en)}</div><div class="muted small">{t('room')} {v.code}</div></div>
-        <button class="icon-btn" aria-label={t('menu')} onClick={() => setMenu('menu')}>☰</button>
-      </header>
       <Toasts />
-      {isFirebase() && v.me.isHost && ['lobby', 'ready'].includes(v.phase) && <div class="hostnote">🖥 {t('hostKeepOpen')}</div>}
-      {isFirebase() && !v.me.isHost && hostOffline.value && <div class="hostnote warn">⚠ {t('hostOffline')}</div>}
-      <main class={v.phase === 'play' ? 'main play-main' : 'main'}><Screen v={v} /></main>
-      {showX && v.phase !== 'play' && <button class="xfloat" aria-label={t('xCard')} onClick={() => send({ type: 'safety', kind: 'x', text: '' })}>X</button>}
-      {menu === 'menu' && (
-        <Modal title={t('menu')} onClose={() => setMenu(null)}>
-          <div class="stack">
-            <Btn kind="ghost" onClick={() => setMenu('guide')}>📖 {t('quickGuide')}</Btn>
-            <Btn kind="ghost" onClick={() => setMenu('notes')}>📝 {t('tabNotes')}</Btn>
-            <Btn kind="ghost" onClick={() => setMenu('safety')}>⚠ {t('safetyTools')}</Btn>
-            {v.me.isHost && <Btn kind="ghost" onClick={() => setMenu('host')}>🎛 {t('hostPanel')}</Btn>}
-            {v.me.isHost && v.phase !== 'lobby' && v.phase !== 'ready' && v.phase !== 'play' && v.phase !== 'final' && v.phase !== 'playback' && v.phase !== 'debrief' && v.phase !== 'done' && <Btn kind="ghost" onClick={() => { send({ type: 'back' }); setMenu(null); }}>↩ {t('prevPhase')}</Btn>}
-            <div class="seg"><button class={lang.value === 'it' ? 'on' : ''} onClick={() => setLang('it')}>Italiano</button><button class={lang.value === 'en' ? 'on' : ''} onClick={() => setLang('en')}>English</button></div>
-            <Btn kind="ghost" onClick={() => { location.hash = '#/'; }}>{t('leave')}</Btn>
-            <Btn kind="ghost" small onClick={() => { forget(); location.reload(); }}>{t('forgetPass')}</Btn>
+      {v.phase === 'play' ? <Screen v={v} onMenu={() => setSheet('menu')} /> : (
+        <>
+          <header class="topbar">
+            <div><div class="title">{t(('phase_' + v.phase) as keyof typeof dict.en)}</div><div class="sub num">{t('room')} {v.code}</div></div>
+            <button class="icon-btn" aria-label={t('menu')} onClick={() => setSheet('menu')}><Menu size={22} /></button>
+          </header>
+          {isFirebase() && v.me.isHost && ['lobby', 'ready'].includes(v.phase) && <div class="hostnote"><Monitor size={18} style={{ flex: 'none', marginTop: '1px' }} /><span>{t('hostKeepOpen')}</span></div>}
+          {isFirebase() && !v.me.isHost && hostOffline.value && <div class="hostnote warn"><WifiOff size={18} style={{ flex: 'none', marginTop: '1px' }} /><span>{t('hostOffline')}</span></div>}
+          <main class={`main ${noBar ? 'no-bar' : ''}`}><Screen v={v} /></main>
+        </>
+      )}
+      {showX && <button class="xfloat" aria-label={t('xCard')} onClick={() => send({ type: 'safety', kind: 'x', text: '' })}>X</button>}
+
+      {sheet === 'menu' && (
+        <Modal title={t('menu')} onClose={close}>
+          <div class="list">
+            <ListRow icon={<BookOpen size={20} />} onClick={() => setSheet('guide')}>{t('quickGuide')}</ListRow>
+            <ListRow icon={<NotebookPen size={20} />} onClick={() => setSheet('notes')}>{t('tabNotes')}</ListRow>
+            <ListRow icon={<ShieldAlert size={20} />} onClick={() => setSheet('safety')}>{t('safetyTools')}</ListRow>
           </div>
+          {v.me.isHost && (
+            <Section title={t('hostSection')}>
+              <div class="list">
+                <ListRow icon={<SlidersHorizontal size={20} />} onClick={() => setSheet('host')}>{t('hostPanel')}</ListRow>
+                {CAN_GO_BACK.includes(v.phase) && <ListRow icon={<Undo2 size={20} />} onClick={() => { send({ type: 'back' }); close(); }}>{t('prevPhase')}</ListRow>}
+              </div>
+            </Section>
+          )}
+          <Section title={t('language')}>
+            <div class="seg"><button class={lang.value === 'it' ? 'on' : ''} onClick={() => setLang('it')}>Italiano</button><button class={lang.value === 'en' ? 'on' : ''} onClick={() => setLang('en')}>English</button></div>
+          </Section>
+          <div class="list">
+            <ListRow icon={<LogOut size={20} />} onClick={() => { location.hash = '#/'; }}>{t('leave')}</ListRow>
+            {v.me.isHost && <ListRow danger icon={<Trash2 size={20} />} onClick={() => setSheet('delete')}>{t('deleteGame')}</ListRow>}
+          </div>
+          <TextLink onClick={() => { forget(); location.reload(); }}>{t('forgetPass')}</TextLink>
         </Modal>
       )}
-      {menu === 'guide' && <Modal title={t('quickGuide')} onClose={() => setMenu(null)}><QuickGuide v={v} /></Modal>}
-      {menu === 'notes' && <Modal title={t('tabNotes')} onClose={() => setMenu(null)}><NotesTab v={v} /></Modal>}
-      {menu === 'safety' && <Modal title={t('safetyTools')} onClose={() => setMenu(null)}><Panel><p>{t('safetyX')}</p><p>{t('safetyDoor')}</p></Panel><Muted>{t('linesAndVeils')}: {v.safety.items.map((i) => `${i.kind === 'line' ? t('line') : t('veil')}: ${i.text}`).join(' · ') || t('noneYet')}</Muted></Modal>}
-      {menu === 'host' && v.me.isHost && <HostPanel v={v} onClose={() => setMenu(null)} />}
+      {sheet === 'guide' && <Modal title={t('quickGuide')} onClose={close}><QuickGuide v={v} /></Modal>}
+      {sheet === 'notes' && <Modal title={t('tabNotes')} onClose={close}><NotesTab v={v} /></Modal>}
+      {sheet === 'safety' && (
+        <Modal title={t('safetyTools')} onClose={close}>
+          <p class="muted">{t('safetyX')}</p>
+          <p class="muted">{t('safetyDoor')}</p>
+          <Section title={t('linesAndVeils')}>
+            {v.safety.items.length === 0 ? <Muted small>{t('noneYet')}</Muted>
+              : <div class="chips">{v.safety.items.map((i) => <span class={`tag ${i.kind}`} key={i.id}>{i.kind === 'line' ? t('line') : t('veil')}: {i.text}</span>)}</div>}
+          </Section>
+        </Modal>
+      )}
+      {sheet === 'host' && v.me.isHost && <HostPanel v={v} onClose={close} />}
+      {sheet === 'delete' && v.me.isHost && (
+        <ConfirmSheet title={t('deleteGameTitle')} body={t('deleteGameBody')} confirm={deleting ? t('deleting') : t('deleteGame')} danger busy={deleting} onConfirm={doDelete} onClose={close} />
+      )}
     </div>
   );
 }

@@ -86,6 +86,15 @@ export class Room {
     if (this.s) this.changed();
   }
 
+  /** Host-only: tell every connected device the game is gone, forget it, and let the transport clean up. */
+  private destroy(): void {
+    for (const [deviceId] of this.conns) this.send(deviceId, { t: 'err', code: 'deleted' });
+    this.conns.clear();
+    this.s = null;
+    this.vms.clear();
+    this.io.destroy?.();
+  }
+
   receive(deviceId: string, m: ClientMsg): void {
     if (m.t === 'ping') return this.send(deviceId, { t: 'pong', c: m.c, s: this.io.now() });
     if (!this.s || !this.conns.has(deviceId)) return;
@@ -589,6 +598,7 @@ export class Room {
         return;
       }
       case 'endGame': this.needHost(ctx); s.clock.running = false; s.clock.pausedRemainingMs = 0; this.enter('final'); return;
+      case 'deleteRoom': this.needHost(ctx); this.destroy(); return;
       case 'getVoicemails': {
         if (!(this.isSound(ctx.deviceId) || ctx.p?.isHost)) this.err(ctx, 'not_allowed');
         const order = this.clockwise();

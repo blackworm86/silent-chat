@@ -1,7 +1,7 @@
 // Message bus abstraction used by the "Firebase transport": the host's browser is the game server,
 // other devices talk to it through a shared queue. Everything on the bus is end-to-end encrypted.
 export type Unsub = () => void;
-export interface Meta { epoch: string; hb: number; created: number; v: number }
+export interface Meta { epoch: string; hb: number; created: number; v: number; /** set by the host right before deleting the room */ closed?: boolean }
 
 export interface Bus {
   getMeta(code: string): Promise<Meta | null>;

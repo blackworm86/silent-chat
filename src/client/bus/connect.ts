@@ -35,7 +35,7 @@ export async function connectBus(bus: Bus, p: BusParams): Promise<Wire | null> {
   const hello: Hello = { t: 'hello', room: p.code, deviceId: p.deviceId, role: p.role, create: false, name: p.name };
   const meta = await bus.getMeta(p.code);
   const hostFlag = store.get('aim.host.' + p.code) === p.deviceId;
-  const becomeHost = p.role === 'player' && ((p.create && !meta) || (hostFlag && !!meta));
+  const becomeHost = p.role === 'player' && !meta?.closed && ((p.create && !meta) || (hostFlag && !!meta));
   if (becomeHost) {
     const engine = new HostEngine({ code: p.code, deviceId: p.deviceId, bus, key, onLocal: p.onMsg });
     await engine.start(meta ? 'resume' : 'create');
@@ -44,5 +44,16 @@ export async function connectBus(bus: Bus, p: BusParams): Promise<Wire | null> {
     return { send: (m) => engine.receiveLocal(m), close: () => { void engine.stop(); } };
   }
   if (!meta) { p.onFatal('no_room'); return null; }
-  return openRemote({ code: p.code, deviceId: p.deviceId, hello, bus, key, onMsg: p.onMsg, onHostState: p.onHostState });
+  if (meta.closed) { p.onFatal('deleted'); return null; }
+  return openRemote({ code: p.code, deviceId: p.deviceId, hello, bus, key, onMsg: p.onMsg, onHostState: p.onHostState, onDeleted: () => p.onFatal('deleted') });
+}
+
+/** Delete a room without running its engine (e.g. from the host's home screen). Connected devices see "deleted". */
+export async function deleteRoomOnBus(bus: Bus, code: string, drainMs = 1500): Promise<void> {
+  const meta = await bus.getMeta(code);
+  if (meta) {
+    await bus.setMeta(code, { ...meta, closed: true });
+    await new Promise((r) => setTimeout(r, drainMs));
+  }
+  await bus.removeRoom(code);
 }

@@ -172,4 +172,6 @@ export interface IO {
   send(deviceId: string, msg: ServerMsg): void;
   persist?(snapshot: string): void;
   persistVm?(seat: number, vm: { mime: string; b64: string }): void;
+  /** The host deleted the room: the transport must drop it (and its stored data) after the goodbye messages are out. */
+  destroy?(): void;
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
+import { X } from 'lucide-preact';
 import { lang, charName, fmtClock } from '../content';
 import { dict, type Key } from '../i18n';
 import { serverNow, view } from '../net';
@@ -12,24 +13,58 @@ export function t(key: Key, params?: Record<string, string | number>): string {
   return s;
 }
 
-export function Btn(p: { onClick?: () => void; kind?: 'primary' | 'ghost' | 'amber' | 'danger'; disabled?: boolean; children: ComponentChildren; small?: boolean; full?: boolean; label?: string }) {
+type BtnKind = 'primary' | 'ghost' | 'outline' | 'amber' | 'danger' | 'danger-ghost';
+export function Btn(p: { onClick?: () => void; kind?: BtnKind; disabled?: boolean; children: ComponentChildren; small?: boolean; full?: boolean; label?: string; icon?: ComponentChildren }) {
   return (
     <button class={`btn ${p.kind ?? 'primary'} ${p.small ? 'small' : ''} ${p.full === false ? 'auto' : ''}`} disabled={p.disabled} onClick={p.onClick} aria-label={p.label}>
-      {p.children}
+      {p.icon}{p.children}
     </button>
   );
 }
-export const Panel = (p: { children: ComponentChildren; amber?: boolean; class?: string }) => <div class={`panel ${p.amber ? 'amber' : ''} ${p.class ?? ''}`}>{p.children}</div>;
-export const Label = (p: { children: ComponentChildren }) => <div class="label">{p.children}</div>;
-export const Muted = (p: { children: ComponentChildren }) => <p class="muted">{p.children}</p>;
+/** Quiet secondary action: overrides, rare or destructive choices. */
+export const TextLink = (p: { onClick: () => void; children: ComponentChildren; danger?: boolean }) =>
+  <button class={`link ${p.danger ? 'danger' : ''}`} onClick={p.onClick}>{p.children}</button>;
 
+export const Panel = (p: { children: ComponentChildren; amber?: boolean; class?: string }) => <div class={`panel ${p.amber ? 'accent' : ''} ${p.class ?? ''}`}>{p.children}</div>;
+export const Section = (p: { title?: ComponentChildren; children: ComponentChildren }) => (
+  <section class="section">{p.title && <div class="label">{p.title}</div>}{p.children}</section>
+);
+export const Label = (p: { children: ComponentChildren }) => <div class="label">{p.children}</div>;
+export const Muted = (p: { children: ComponentChildren; small?: boolean }) => <p class={`muted ${p.small ? 'small' : ''}`}>{p.children}</p>;
+
+export function ListRow(p: { icon?: ComponentChildren; children: ComponentChildren; sub?: ComponentChildren; onClick?: () => void; danger?: boolean; end?: ComponentChildren }) {
+  const body = <>{p.icon && <span class="ic">{p.icon}</span>}<span class="grow">{p.children}{p.sub && <small>{p.sub}</small>}</span>{p.end}</>;
+  return p.onClick
+    ? <button class={`list-row ${p.danger ? 'danger' : ''}`} onClick={p.onClick}>{body}</button>
+    : <div class={`list-row ${p.danger ? 'danger' : ''}`}>{body}</div>;
+}
+
+export function Switch(p: { checked: boolean; disabled?: boolean; onChange: (v: boolean) => void; children: ComponentChildren }) {
+  return (
+    <label class="switch-row"><span>{p.children}</span>
+      <input class="switch" type="checkbox" role="switch" checked={p.checked} disabled={p.disabled} onChange={(e) => p.onChange((e.target as HTMLInputElement).checked)} />
+    </label>
+  );
+}
+
+/** Fixed bottom bar for the screen's one primary action (thumb zone). */
+export function ActionBar(p: { children: ComponentChildren; status?: ComponentChildren }) {
+  return (
+    <div class="actionbar"><div class="actionbar-in">
+      {p.status !== undefined && <div class="status" aria-live="polite">{p.status}</div>}
+      {p.children}
+    </div></div>
+  );
+}
+export const Waiting = (p: { children: ComponentChildren }) => <div class="waiting"><span class="pulse" aria-hidden="true" />{p.children}</div>;
+
+const AVATAR = ['oklch(0.8 0.09 250)', 'oklch(0.8 0.11 30)', 'oklch(0.8 0.1 300)', 'oklch(0.82 0.11 155)', 'oklch(0.86 0.11 95)'];
 export function Avatar({ seat, size = 36 }: { seat: number; size?: number }) {
   const v = view.value;
   const pl = v?.players.find((x) => x.seat === seat);
   const label = pl?.characterId ? charName(pl.characterId) : pl?.name ?? '?';
-  const colors = ['#8FB8FF', '#FF9F8A', '#C7A6FF', '#7FD6A0', '#F2D16B'];
   return (
-    <span class="avatar" style={{ width: size, height: size, background: colors[seat % 5], fontSize: size * 0.45 }} aria-hidden="true">
+    <span class="avatar" style={{ width: `${size}px`, height: `${size}px`, background: AVATAR[seat % 5], fontSize: `${Math.round(size * 0.42)}px` }} aria-hidden="true">
       {label.slice(0, 1).toUpperCase()}
     </span>
   );
@@ -61,17 +96,49 @@ export function useRemaining(): number {
 }
 export function Countdown({ until }: { until: number }) {
   const now = useNow(500);
-  return <span class="mono">{fmtClock(until - now)}</span>;
+  return <span class="num">{fmtClock(until - now)}</span>;
 }
 
+/** Bottom sheet. Closes on backdrop tap, the close button, or Escape. */
 export function Modal(p: { title: string; onClose: () => void; children: ComponentChildren }) {
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') p.onClose(); };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [p.onClose]);
   return (
-    <div class="modal-back" onClick={p.onClose}>
-      <div class="modal" role="dialog" aria-label={p.title} onClick={(e) => e.stopPropagation()}>
-        <div class="modal-head"><h2>{p.title}</h2><button class="icon-btn" aria-label={t('close')} onClick={p.onClose}>×</button></div>
-        <div class="modal-body">{p.children}</div>
+    <div class="sheet-back" onClick={p.onClose}>
+      <div class="sheet" role="dialog" aria-modal="true" aria-label={p.title} onClick={(e) => e.stopPropagation()}>
+        <div class="sheet-head"><h2>{p.title}</h2><button class="icon-btn" aria-label={t('close')} onClick={p.onClose}><X size={22} /></button></div>
+        <div class="sheet-body">{p.children}</div>
       </div>
     </div>
+  );
+}
+
+/** In-app replacement for window.confirm (blocked or ugly in installed PWAs and in-app browsers). */
+export function ConfirmSheet(p: { title: string; body: ComponentChildren; confirm: string; danger?: boolean; busy?: boolean; onConfirm: () => void; onClose: () => void }) {
+  return (
+    <Modal title={p.title} onClose={p.onClose}>
+      <p class="muted">{p.body}</p>
+      <div class="stack tight">
+        <Btn kind={p.danger ? 'danger' : 'primary'} disabled={p.busy} onClick={p.onConfirm}>{p.confirm}</Btn>
+        <Btn kind="ghost" onClick={p.onClose}>{t('cancel')}</Btn>
+      </div>
+    </Modal>
+  );
+}
+
+/** In-app replacement for window.prompt. */
+export function PromptSheet(p: { title: string; hint?: string; placeholder?: string; confirm: string; onSubmit: (text: string) => void; onClose: () => void }) {
+  const [text, setText] = useState('');
+  const ok = () => { if (text.trim()) { p.onSubmit(text.trim()); p.onClose(); } };
+  return (
+    <Modal title={p.title} onClose={p.onClose}>
+      {p.hint && <p class="muted small">{p.hint}</p>}
+      <input class="input" autoFocus value={text} maxLength={120} placeholder={p.placeholder} onInput={(e) => setText((e.target as HTMLInputElement).value)} onKeyDown={(e) => e.key === 'Enter' && ok()} />
+      <Btn disabled={!text.trim()} onClick={ok}>{p.confirm}</Btn>
+    </Modal>
   );
 }
 

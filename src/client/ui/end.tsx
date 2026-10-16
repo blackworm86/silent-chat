@@ -1,34 +1,35 @@
 import { useState } from 'preact/hooks';
+import { Download, SendHorizontal } from 'lucide-preact';
 import { send, chat } from '../net';
 import { C, tx } from '../content';
-import { t, Btn, Panel, Label, Muted, seatName, UnofficialTag, showUnofficial } from './common';
+import { t, Btn, Panel, Label, Muted, seatName, UnofficialTag, showUnofficial, ActionBar, Waiting, Section, TextLink } from './common';
 import { ChatTab } from './play';
 import { SoundPlayer, VoicemailPlayer } from './sound';
 import type { View } from '../../shared/types';
 
 function Next({ v, label }: { v: View; label?: string }) {
-  return v.me.isHost ? <Btn onClick={() => send({ type: 'next' })}>{label ?? t('next')}</Btn> : <Muted>{t('waitHost')}</Muted>;
+  return <ActionBar>{v.me.isHost ? <Btn onClick={() => send({ type: 'next' })}>{label ?? t('next')}</Btn> : <Waiting>{t('waitHost')}</Waiting>}</ActionBar>;
 }
 
 export function Final({ v }: { v: View }) {
   const chatApp = v.settings.sources.chat === 'app';
   return (
-    <div class="stack">
+    <>
       <Panel amber><h2>{t('timesUp')}</h2><p>{t('finalHint')}</p></Panel>
       {chatApp ? <ChatTab v={v} groupOnly /> : <Muted>{t('finalExternal')}</Muted>}
       {v.me.isSound && <SoundPlayer />}
       <Next v={v} label={t('toVoicemails')} />
-    </div>
+    </>
   );
 }
 
 export function Playback({ v }: { v: View }) {
   return (
-    <div class="stack">
+    <>
       <Panel amber><h2>{t('voicemailsTitle')}</h2><p>{t('playbackHint')}</p></Panel>
       {v.me.isSound ? <><SoundPlayer /><VoicemailPlayer /></> : <Muted>{v.settings.soundDevice === 'table' ? t('listenTable') : t('listenHost')}</Muted>}
       <Next v={v} label={t('toDebrief')} />
-    </div>
+    </>
   );
 }
 
@@ -48,30 +49,29 @@ export function Debrief({ v }: { v: View }) {
   const chatApp = v.settings.sources.chat === 'app';
   const real = chat.value.filter((m) => m.kind === 'msg' && m.as === null && !m.deleted);
   return (
-    <div class="stack">
-      <Panel amber>
-        <Label>{tx(d.title)} {showUnofficial() && <UnofficialTag />}</Label>
-        <p class="italic">{tx(d.intro)}</p>
+    <>
+      <article class="gcard">
+        <div class="row between"><Label>{tx(d.title)}</Label>{showUnofficial() && <UnofficialTag />}</div>
+        <p class="italic muted">{tx(d.intro)}</p>
         <ol class="guide">{d.questions.map((q: any, i: number) => <li key={i}>{tx(q)}</li>)}</ol>
-        <p class="italic">{tx(d.outro)}</p>
-      </Panel>
-      {v.me.isHost && <Muted>{t('debriefReader')}</Muted>}
+        <p class="italic muted">{tx(d.outro)}</p>
+      </article>
+      {v.me.isHost && <Muted small>{t('debriefReader')}</Muted>}
       {chatApp ? (
-        <Panel>
-          <Label>{t('realNames')}</Label>
-          {real.map((m) => <p key={m.id}><b>{seatName(v, m.from)}</b>: {m.text}</p>)}
-          <div class="row">
+        <Section title={t('realNames')}>
+          {real.map((m) => <p key={m.id}><b>{seatName(v, m.from)}</b> {m.text}</p>)}
+          <div class="row nowrap">
             <input class="input" value={name} maxLength={60} placeholder={t('realNamePlaceholder')} onInput={(e) => setName((e.target as HTMLInputElement).value)} />
-            <Btn full={false} onClick={() => { if (name.trim()) { send({ type: 'realName', text: name }); setName(''); } }}>➤</Btn>
+            <Btn small full={false} label={t('send')} disabled={!name.trim()} onClick={() => { if (name.trim()) { send({ type: 'realName', text: name }); setName(''); } }}><SendHorizontal size={20} /></Btn>
           </div>
-          <Btn kind="ghost" small onClick={() => exportChat(v)}>⬇ {t('exportChat')}</Btn>
-        </Panel>
+          <TextLink onClick={() => exportChat(v)}><Download size={16} />{t('exportChat')}</TextLink>
+        </Section>
       ) : <Muted>{t('renameContacts')}</Muted>}
       <Next v={v} label={t('finish')} />
-    </div>
+    </>
   );
 }
 
 export function Done() {
-  return <Panel amber><h2>{t('thanks')}</h2><p>{t('thanksHint')}</p></Panel>;
+  return <div class="stack loose center-text" style={{ paddingTop: '48px' }}><h1>{t('thanks')}</h1><p class="lede">{t('thanksHint')}</p><a class="btn ghost" href="#/">{t('backHome')}</a></div>;
 }

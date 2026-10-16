@@ -93,7 +93,7 @@ async function openBus(p: Params) {
     const bus = await makeBus(config.value.firebase);
     const w = await connectBus(bus, {
       code: p.room, role: p.role, create: p.create, name: p.name, deviceId: deviceId(), pass: getPass(),
-      onMsg, onFatal: (c) => { fatal.value = c; }, onHostState: (off) => { hostOffline.value = off; }
+      onMsg, onFatal: setFatal, onHostState: (off) => { hostOffline.value = off; }
     });
     if (params !== p) { w?.close(); return; }
     wire = w;
@@ -103,11 +103,61 @@ async function openBus(p: Params) {
   }
 }
 
+// ---------------- games this device hosts (for "Your games" on the home screen) ----------------
+export interface MyGame { code: string; at: number }
+const GAMES_KEY = 'aim.games';
+export const myGames = signal<MyGame[]>(readGames());
+function readGames(): MyGame[] {
+  try { const g = JSON.parse(localStorage.getItem(GAMES_KEY) ?? '[]'); return Array.isArray(g) ? g.filter((x) => x && typeof x.code === 'string') : []; } catch { return []; }
+}
+function writeGames(g: MyGame[]) {
+  myGames.value = g;
+  try { localStorage.setItem(GAMES_KEY, JSON.stringify(g)); } catch { /* ignore */ }
+}
+function rememberGame(code: string) { if (!myGames.value.some((g) => g.code === code)) writeGames([{ code, at: Date.now() }, ...myGames.value].slice(0, 8)); }
+export function forgetGame(code: string) {
+  writeGames(myGames.value.filter((g) => g.code !== code));
+  try { localStorage.removeItem('aim.host.' + code); localStorage.removeItem('aim.notes.' + code); } catch { /* ignore */ }
+}
+
+function setFatal(code: string) {
+  fatal.value = code;
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  if (code === 'deleted' && params) forgetGame(params.room);
+}
+
+/**
+ * Host only: delete a game for everyone. Works from inside the room (the engine broadcasts "deleted")
+ * and from the home screen, where the room may not be running on this device.
+ */
+export async function deleteSession(code: string): Promise<void> {
+  if (params?.room === code && wire) {
+    send({ type: 'deleteRoom' });
+  } else if (isFirebase()) {
+    const { makeBus, deleteRoomOnBus } = await import('./bus/connect');
+    await deleteRoomOnBus(await makeBus(config.value.firebase), code);
+  } else {
+    await new Promise<void>((resolve) => {
+      let sock: WebSocket;
+      try { sock = new WebSocket(wsUrl(code)); } catch { resolve(); return; }
+      const done = () => { clearTimeout(timer); try { sock.close(); } catch { /* ignore */ } resolve(); };
+      const timer = setTimeout(done, 4000);
+      sock.onopen = () => {
+        sock.send(JSON.stringify({ t: 'hello', room: code, deviceId: deviceId(), role: 'player', create: false, name: '' }));
+        sock.send(JSON.stringify({ t: 'do', a: { type: 'deleteRoom' } }));
+      };
+      sock.onmessage = (ev) => { try { const m = JSON.parse(String(ev.data)); if (m.t === 'err' && (['deleted', 'no_room'].includes(m.code) || m.msg === 'host_only')) done(); } catch { /* ignore */ } };
+      sock.onerror = done;
+    });
+  }
+  forgetGame(code);
+}
+
 // ---------------- shared message handling ----------------
 function onMsg(m: ServerMsg) {
   switch (m.t) {
-    case 'welcome': conn.value = 'open'; break;
-    case 'view': view.value = m.v; break;
+    case 'welcome': conn.value = 'open'; if (m.isHost && params?.role === 'player') rememberGame(params.room); break;
+    case 'view': view.value = m.v; if (m.v.phase === 'done' && m.v.me.isHost) forgetGame(m.v.code); break;
     case 'chatHistory': chat.value = m.ms; break;
     case 'chat': if (!chat.value.some((x) => x.id === m.m.id)) chat.value = [...chat.value, m.m]; break;
     case 'chatUpdate': chat.value = chat.value.map((x) => (x.id === m.m.id ? m.m : x)); break;
@@ -120,10 +170,13 @@ function onMsg(m: ServerMsg) {
       break;
     }
     case 'err':
-      if (['no_room', 'started', 'full'].includes(m.code)) { fatal.value = m.code; if (reconnectTimer) clearTimeout(reconnectTimer); }
+      if (['no_room', 'started', 'full', 'deleted'].includes(m.code)) setFatal(m.code);
       else { const id = seq++; errors.value = [...errors.value.slice(-3), { id, code: m.msg ?? m.code }]; setTimeout(() => dismissError(id), 6000); }
       break;
-    case 'toast': { const id = seq++; toasts.value = [...toasts.value.slice(-4), { id, code: m.code, params: m.params }]; alertDevice(m.code); setTimeout(() => dismissToast(id), 8000); break; }
+    case 'toast': {
+      alertDevice(m.code);
+      if (m.code === 'clueUnlocked') break;          // the play screen shows its own banner; a toast would cover the clock
+      const id = seq++; toasts.value = [...toasts.value.slice(-4), { id, code: m.code, params: m.params }]; setTimeout(() => dismissToast(id), 8000); break; }
     case 'typing': {
       const key = m.to === 'group' ? 'group' : String(m.from);
       typingMap.value = { ...typingMap.value, [key]: Date.now() + 3500 };

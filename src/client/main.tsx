@@ -1,5 +1,7 @@
 import { render } from 'preact';
 import { App } from './App';
+import '@fontsource-variable/fraunces/opsz.css';
+import '@fontsource-variable/instrument-sans/wght.css';
 import './styles.css';
 
 render(<App />, document.getElementById('app')!);

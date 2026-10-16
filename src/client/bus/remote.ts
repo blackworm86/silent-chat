@@ -6,6 +6,8 @@ export interface RemoteOpts {
   code: string; deviceId: string; hello: Hello; bus: Bus; key: CryptoKey;
   onMsg: (m: ServerMsg) => void;
   onHostState?: (offline: boolean) => void;
+  /** the host deleted the room */
+  onDeleted?: () => void;
   pingMs?: number; offlineMs?: number;
 }
 
@@ -33,6 +35,7 @@ export function openRemote(o: RemoteOpts): Wire {
   const unsubMeta = o.bus.onMeta(o.code, (meta) => {
     if (closed) return;
     if (!meta) { o.onHostState?.(true); return; }
+    if (meta.closed) { o.onDeleted?.(); return; }
     if (meta.hb !== lastHb) { lastHb = meta.hb; lastHbAt = Date.now(); o.onHostState?.(false); }
     if (meta.epoch !== epoch) { epoch = meta.epoch; send(o.hello); }   // first sight, or the host restarted: (re)announce ourselves
   });

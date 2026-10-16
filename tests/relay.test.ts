@@ -63,3 +63,25 @@ describe('local relay over real WebSockets', () => {
     a2.ws.close();
   });
 });
+
+describe('local relay: host deletes the game', () => {
+  it('tells every device and drops the room', async () => {
+    const { rooms } = await import('../relay/relay');
+    server ??= await createServer(0);
+    const port = (server.address() as AddressInfo).port;
+    const a = new Client('ha', port, 'DELE'), b = new Client('hb', port, 'DELE');
+    await a.open('player', true); await a.until(() => a.view?.phase === 'lobby');
+    await b.open(); await a.until(() => a.view!.players.length === 2);
+    b.do({ type: 'deleteRoom' });
+    await b.until(() => b.msgs.some((m) => m.t === 'err'));
+    expect(rooms.has('DELE')).toBe(true);                // not the host: refused
+    a.do({ type: 'deleteRoom' });
+    await b.until(() => b.msgs.some((m) => m.t === 'err' && m.code === 'deleted'));
+    await a.until(() => !rooms.has('DELE'));
+    const c = new Client('hc', port, 'DELE');
+    await c.open();
+    await c.until(() => c.msgs.some((m) => m.t === 'err'));
+    expect(c.msgs.find((m) => m.t === 'err')).toMatchObject({ code: 'no_room' });
+    [a, b, c].forEach((x) => x.ws.close());
+  });
+});

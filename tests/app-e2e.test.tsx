@@ -40,11 +40,13 @@ maybe('real <App/> against the relay (jsdom WebSocket)', () => {
     await waitFor(() => expect(view.value!.players.length).toBe(3), { timeout: 4000 });
     await screen.findByText('carlo');
 
-    // switch to Chat + Game aids using the real button, then back to digital
-    fireEvent.click(screen.getByText('Chat + Game aids'));
+    // open the settings sheet, switch to Chat + Game aids using the real button, then back to digital
+    fireEvent.click(screen.getByRole('button', { name: /Game settings/ }));
+    fireEvent.click(await screen.findByText('Chat + Game aids'));
     await waitFor(() => expect(view.value!.settings.mode).toBe('aids'));
     fireEvent.click(screen.getByText('Full digital'));
     await waitFor(() => expect(view.value!.settings.mode).toBe('digital'));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
     fireEvent.click(screen.getByText('Start setup'));
     await waitFor(() => expect(view.value!.phase).toBe('safety'));

@@ -209,13 +209,12 @@ describe('Chat + Game Aids (physical cards)', () => {
     const h = new Harness();
     const ids = setupToReady(h, 4, { aids: true });
     const v = h.v('p0');
-    expect(v.settings.sources.chat).toBe('external');
+    expect(v.settings.sources.chat).toBe('app');
     expect(v.plan).not.toBeNull();
     expect(v.plan!.length).toBe(10);
-    h.do('p1', { type: 'chat', to: 'group', text: 'x' }); // chat is external
     startPlay(h);
     h.do('p1', { type: 'chat', to: 'group', text: 'x' });
-    expect(h.err('p1')).toBe('chat_external');
+    expect(h.chats('p2').some((m) => m.text === 'x')).toBe(true);
     // physical flip needs the variant
     h.advance(10 * 60000);
     const holder = ids.find((i) => h.v(i).hands.some((x) => x.ts === 80))!;

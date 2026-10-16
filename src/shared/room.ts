@@ -15,7 +15,7 @@ const MAX_VM_B64 = 1_500_000;
 export function presetSources(mode: 'digital' | 'aids'): Sources {
   return mode === 'digital'
     ? { characters: 'digital', drives: 'digital', poster: 'digital', clues: 'digital', suspects: 'digital', locations: 'digital', search: 'digital', voicemail: 'digital', chat: 'app' }
-    : { characters: 'physical', drives: 'physical', poster: 'physical', clues: 'physical', suspects: 'physical', locations: 'physical', search: 'physical', voicemail: 'digital', chat: 'external' };
+    : { characters: 'physical', drives: 'physical', poster: 'physical', clues: 'physical', suspects: 'physical', locations: 'physical', search: 'physical', voicemail: 'digital', chat: 'app' };
 }
 export function defaultSettings(): Settings {
   return {

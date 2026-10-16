@@ -1,5 +1,9 @@
 // UI strings (Italian / English). Game CARD text is NOT here: it lives in the encrypted content pack.
 const en = {
+  "needInvite": "Open the invite link or scan the QR code shown by the host. You don't need to type any passphrase.",
+  "inviteBad": "This invite doesn't open the game (the host may have changed the passphrase). Ask the host for a new QR code or link.",
+  "inviteSecretNote": "The invite link and QR contain the game key. Share them only with your friends.",
+  "imHost": "I'm the host",
   "hostKeepOpen": "You are the game server: keep this app open in front and the screen on. If you switch apps, the game freezes for everyone.",
   "hostOffline": "Waiting for the host's device… (the host must keep the app open)",
   "diagTitle": "Connection test",
@@ -254,7 +258,7 @@ const en = {
   "typing": "typing",
   "undoRegistration": "Undo a registration",
   "unlock": "Unlock",
-  "unlockHint": "Enter the group passphrase to open the game content (once per device).",
+  "unlockHint": "Host only: enter the group passphrase to open the game. Your friends never type it — they join with your invite QR code or link.",
   "unlocking": "Unlocking…",
   "unlocksAt": "unlocks at {clock}",
   "unofficial": "Unofficial translation",
@@ -324,6 +328,10 @@ const en = {
 
 export type Key = keyof typeof en;
 const it: Record<Key, string> = {
+  "needInvite": "Apri il link d'invito o inquadra il QR mostrato dall'host. Non serve scrivere nessuna passphrase.",
+  "inviteBad": "Questo invito non apre il gioco (l'host potrebbe aver cambiato la passphrase). Chiedi all'host un nuovo QR o link.",
+  "inviteSecretNote": "Il link d'invito e il QR contengono la chiave del gioco. Condividili solo con i tuoi amici.",
+  "imHost": "Sono l'host",
   "hostKeepOpen": "Sei tu il server della partita: tieni l'app aperta in primo piano e lo schermo acceso. Se cambi app, il gioco si blocca per tutti.",
   "hostOffline": "In attesa del dispositivo dell'host… (l'host deve tenere l'app aperta)",
   "diagTitle": "Test di connessione",
@@ -578,7 +586,7 @@ const it: Record<Key, string> = {
   "typing": "sta scrivendo",
   "undoRegistration": "Annulla una registrazione",
   "unlock": "Sblocca",
-  "unlockHint": "Inserisci la passphrase del gruppo per aprire i contenuti del gioco (una volta per dispositivo).",
+  "unlockHint": "Solo l'host: inserisci la passphrase del gruppo per aprire il gioco. Gli amici non la scrivono mai: entrano con il tuo QR o link d'invito.",
   "unlocking": "Sblocco…",
   "unlocksAt": "si sblocca a {clock}",
   "unofficial": "Traduzione non ufficiale",

@@ -70,18 +70,62 @@ function Home() {
   );
 }
 
+const ROUTE = /^#\/(r|t)\/([A-Za-z0-9]{3,10})(\/new)?(?:\?(.*))?$/;
+export function parseRoute(hash: string) {
+  const m = ROUTE.exec(hash);
+  if (!m) return null;
+  return { role: m[1] as 'r' | 't', code: m[2].toUpperCase(), create: !!m[3], key: new URLSearchParams(m[4] ?? '').get('k') };
+}
+/** Remove the key from the address bar (so it is not left in screenshots / history). */
+function cleanUrl() {
+  const h = location.hash.replace(/\?k=[^&]*&?/, '?').replace(/\?$/, '');
+  if (h !== location.hash) history.replaceState(null, '', location.pathname + location.search + h);
+}
+
+function NeedInvite() {
+  return (
+    <div class="page center">
+      <Panel>
+        <div class="row between"><h1>Silent Chat</h1><LangSwitch /></div>
+        <p>{t('needInvite')}</p>
+        <a class="btn ghost small" href="#/">{t('imHost')}</a>
+      </Panel>
+    </div>
+  );
+}
+function BadInvite() {
+  return (
+    <div class="page center">
+      <Panel>
+        <div class="row between"><h1>Silent Chat</h1><LangSwitch /></div>
+        <p class="warn">{t('inviteBad')}</p>
+        <a class="btn ghost small" href="#/">{t('imHost')}</a>
+      </Panel>
+    </div>
+  );
+}
+
 export function App() {
   const [checked, setChecked] = useState(false);
+  const [linkState, setLinkState] = useState<'idle' | 'bad'>('idle');
   const hash = useHash();
+  const route = parseRoute(hash);
   useEffect(() => { void Promise.all([loadConfig(), tryStoredPass()]).finally(() => setChecked(true)); }, []);
   useEffect(() => { document.documentElement.lang = lang.value; }, [lang.value]);
+  // A friend opened an invite link/QR: unlock silently with the key inside it.
+  useEffect(() => {
+    if (!checked || !route?.key) return;
+    if (content.value) { cleanUrl(); return; }
+    unlock(route.key).then((ok) => { if (ok) cleanUrl(); else setLinkState('bad'); }).catch(() => setLinkState('bad'));
+  }, [checked, route?.key]);
+
   if (!checked) return <div class="page center"><p>…</p></div>;
-  if (!content.value) return <Unlock />;
-  if (hash === '#/diag') return <Diag />;
-  const m = /^#\/(r|t)\/([A-Za-z0-9]{3,10})(\/new)?$/.exec(hash);
-  if (m) {
-    const code = m[2].toUpperCase();
-    return m[1] === 't' ? <TableApp code={code} /> : <PlayerRoom code={code} create={!!m[3]} />;
+  if (!content.value) {
+    if (route?.key) return linkState === 'bad' ? <BadInvite /> : <div class="page center"><p>{t('unlocking')}</p></div>;
+    if (route) return <NeedInvite />;          // friends never get a passphrase box
+    return <Unlock />;                          // only the host's start screen asks for it
   }
+  if (hash === '#/diag') return <Diag />;
+  if (route) return route.role === 't' ? <TableApp code={route.code} /> : <PlayerRoom code={route.code} create={route.create} />;
   return <Home />;
 }

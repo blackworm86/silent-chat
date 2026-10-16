@@ -39,6 +39,11 @@ export async function tryStoredPass(): Promise<boolean> {
 }
 
 export const getPass = () => localStorage.getItem('aim.pass') ?? '';
+/** Invite link/QR for friends. The key travels after the '#', which browsers never send to any server. */
+export function inviteUrl(code: string, role: 'r' | 't'): string {
+  const k = getPass();
+  return `${location.origin}${location.pathname}#/${role}/${code}${k ? '?k=' + encodeURIComponent(k) : ''}`;
+}
 export function forget() { localStorage.removeItem('aim.pass'); content.value = null; key = null; posterCache.clear(); }
 
 export async function posterUrl(index: number): Promise<string | null> {

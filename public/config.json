@@ -1,10 +1,12 @@
 {
   "transport": "firebase",
   "firebase": {
-    "apiKey": "YOUR-API-KEY",
-    "authDomain": "YOUR-PROJECT.firebaseapp.com",
-    "databaseURL": "https://YOUR-PROJECT-default-rtdb.europe-west1.firebasedatabase.app",
-    "projectId": "YOUR-PROJECT",
-    "appId": "YOUR-APP-ID"
+    "apiKey": "AIzaSyAmcEfAamvqEqCRWRsvWRA8ioOISbp7Pes",
+    "authDomain": "silent-chat-9562e.firebaseapp.com",
+    "databaseURL": "https://silent-chat-9562e-default-rtdb.europe-west1.firebasedatabase.app",
+    "projectId": "silent-chat-9562e",
+    "storageBucket": "silent-chat-9562e.firebasestorage.app",
+    "messagingSenderId": "611533988185",
+    "appId": "1:611533988185:web:d29e9f509f11a2658fec48"
   }
 }

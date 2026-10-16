@@ -1,6 +1,6 @@
 import { useEffect } from 'preact/hooks';
 import { view, fatal, connect, disconnect, conn } from '../net';
-import { C, tx } from '../content';
+import { C, tx, inviteUrl } from '../content';
 import { t, Btn, Panel, Muted, useRemaining, Label } from './common';
 import { TableView, LightsOut } from './play';
 import { SoundPlayer, VoicemailPlayer, startAudio } from './sound';
@@ -30,7 +30,7 @@ function TableBody({ v, code }: { v: NonNullable<typeof view.value>; code: strin
         <Panel>
           <h2>{t(('phase_' + v.phase) as keyof typeof dict.en)}</h2>
           <p class="muted">{t('tableWaiting')}</p>
-          {v.phase === 'lobby' && <div class="row center"><Qr text={`${location.origin}${location.pathname}#/r/${code}`} /></div>}
+          {v.phase === 'lobby' && <div class="row center"><Qr text={inviteUrl(code, 'r')} /></div>}
           {v.phase === 'intro' && <p>{C().specialCards.intro.body.map((b: any, i: number) => <span key={i}>{tx(b)}<br /><br /></span>)}</p>}
         </Panel>
       )}

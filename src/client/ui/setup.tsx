@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import qrcode from 'qrcode-generator';
 import { send } from '../net';
 import {
-  C, tx, character, drive, posterUrl, dayWord
+  C, tx, character, drive, posterUrl, dayWord, inviteUrl
 } from '../content';
 import { t, Btn, Panel, Label, Muted, Avatar, seatName, UnofficialTag, showUnofficial } from './common';
 import { SoundPlayer, startAudio } from './sound';
@@ -34,7 +34,7 @@ function HostNext({ v, blocked, label, force }: { v: View; blocked?: boolean; la
     </div>
   );
 }
-const joinUrl = (code: string, role: 'r' | 't') => `${location.origin}${location.pathname}#/${role}/${code}`;
+const joinUrl = inviteUrl;
 
 // ---------- lobby ----------
 const SRC_KEYS: (keyof Sources)[] = ['characters', 'drives', 'poster', 'clues', 'suspects', 'locations', 'search', 'voicemail'];
@@ -56,6 +56,7 @@ export function Lobby({ v }: { v: View }) {
           <div><Qr text={joinUrl(v.code, 't')} /><Muted>{t('scanTable')}</Muted></div>
         </div>
         <Btn kind="ghost" small onClick={() => navigator.clipboard?.writeText(joinUrl(v.code, 'r'))}>{t('copyLink')}</Btn>
+        <Muted>🔑 {t('inviteSecretNote')}</Muted>
       </Panel>
 
       <Panel>

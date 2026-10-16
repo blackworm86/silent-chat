@@ -383,7 +383,7 @@ function MsgMenu({ s, onClose, onReply, onPrivate }: { s: MenuState; onClose: ()
   const left = Math.max(8, Math.min(s.x - W / 2, window.innerWidth - W - 8));
   const top = Math.max(8, Math.min(s.y - 20, window.innerHeight - H - 8));
   return (
-    <div class="ctx-back" onPointerDown={(e) => { e.preventDefault(); onClose(); }} onContextMenu={(e) => { e.preventDefault(); onClose(); }}>
+    <div class="ctx-back" onPointerDown={(e) => { e.preventDefault(); onClose(); }} onContextMenu={(e) => e.preventDefault()}>
       <div class="ctx" role="menu" style={{ left: `${left}px`, top: `${top}px`, width: `${W}px` }} onPointerDown={(e) => e.stopPropagation()}>
         <button role="menuitem" onClick={onReply}><Reply size={18} />{t('reply')}</button>
         {s.mine
@@ -419,7 +419,7 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
   const [safety, setSafety] = useState(false);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [replyTo, setReplyTo] = useState<ChatMsg | null>(null);
-  const inputEl = useRef<HTMLInputElement>(null);
+  const inputEl = useRef<HTMLTextAreaElement>(null);
   const thread = useRef<HTMLDivElement>(null);
   const lastTyping = useRef(0);
   const msgs = chat.value.filter((m) => convOf(m, me) === conv);
@@ -438,6 +438,7 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
     const tt = text.trim(); if (!tt) return;
     send({ type: 'chat', to: conv === 'group' ? 'group' : Number(conv), text: tt, ...(replyTo ? { replyTo: replyTo.id } : {}) });
     setText(''); setReplyTo(null);
+    if (inputEl.current) inputEl.current.style.height = 'auto';
     inputEl.current?.focus(); // keep the keyboard open, like a real chat app
   };
   const focusInput = () => setTimeout(() => inputEl.current?.focus(), 0);
@@ -476,10 +477,12 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
       <div class="composer">
         <button class="xbtn" onClick={() => send({ type: 'safety', kind: 'x', text: '' })} aria-label={t('xCard')}>X</button>
         <button class="safety-btn" onClick={() => setSafety(true)} aria-label={t('addLineVeil')}><ShieldAlert size={20} /></button>
-        <input class="input" ref={inputEl} value={text} enterKeyHint="send" placeholder={lock ? t('chatLocked') : t('messageAs', { name: seatName(v, me, true) })}
-          onInput={(e) => { const val = (e.target as HTMLInputElement).value; setText(val); if (Date.now() - lastTyping.current > 2500 && val) { lastTyping.current = Date.now(); sendTyping(conv === 'group' ? 'group' : Number(conv)); } }}
+        <textarea class="input chat-input" ref={inputEl} rows={1} value={text} enterKeyHint="send" name="chat-message" autocomplete="off" autocapitalize="sentences" spellcheck={false}
+          data-lpignore="true" data-1p-ignore="true" data-form-type="other"
+          placeholder={lock ? t('chatLocked') : t('messageAs', { name: seatName(v, me, true) })}
+          onInput={(e) => { const el = e.target as HTMLTextAreaElement; const val = el.value; setText(val); el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 112) + 'px'; if (Date.now() - lastTyping.current > 2500 && val) { lastTyping.current = Date.now(); sendTyping(conv === 'group' ? 'group' : Number(conv)); } }}
           onFocus={() => { composing.value = true; }} onBlur={() => { composing.value = false; }}
-          onKeyDown={(e) => e.key === 'Enter' && submit()} />
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }} />
         <button class="send" disabled={!text.trim()} onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()} onClick={submit} aria-label={t('send')}><SendHorizontal size={20} /></button>
       </div>
       {safety && <SafetySheet onClose={() => setSafety(false)} />}

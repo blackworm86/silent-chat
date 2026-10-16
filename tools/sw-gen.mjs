@@ -15,7 +15,7 @@ const version = crypto.createHash('sha1').update(files.map((f) => f + fs.statSyn
 const sw = `// auto-generated
 const VERSION = 'aim-${version}';
 const SHELL = ${JSON.stringify(['./', ...files])};
-self.addEventListener('install', (e) => { e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
+self.addEventListener('install', (e) => { e.waitUntil(caches.open(VERSION).then((c) => Promise.all(SHELL.map((u) => fetch(new Request(u, { cache: 'reload' })).then((r) => { if (!r.ok) throw new Error(u); return c.put(u, r); })))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== VERSION && k !== 'aim-pack').map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', (e) => {
   const req = e.request; const url = new URL(req.url);
@@ -23,6 +23,11 @@ self.addEventListener('fetch', (e) => {
   if (url.pathname.includes('/pack/') || url.pathname.endsWith('/config.json')) {
     // encrypted pack + config: network first (so a re-deploy wins), cache fallback for offline play
     e.respondWith(fetch(req).then((r) => { const copy = r.clone(); caches.open('aim-pack').then((c) => c.put(req, copy)); return r; }).catch(() => caches.match(req)));
+    return;
+  }
+  if (req.mode === 'navigate') {
+    // the HTML shell is network-first, otherwise a stale index.html points at deleted hashed assets (black screen)
+    e.respondWith(fetch(req, { cache: 'no-store' }).then((r) => { const copy = r.clone(); caches.open(VERSION).then((c) => c.put('./', copy)); return r; }).catch(() => caches.match('./')));
     return;
   }
   e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((r) => { const copy = r.clone(); caches.open(VERSION).then((c) => c.put(req, copy)); return r; }).catch(() => caches.match('./'))));

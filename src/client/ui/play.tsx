@@ -477,7 +477,7 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
       <div class="composer">
         <button class="xbtn" onClick={() => send({ type: 'safety', kind: 'x', text: '' })} aria-label={t('xCard')}>X</button>
         <button class="safety-btn" onClick={() => setSafety(true)} aria-label={t('addLineVeil')}><ShieldAlert size={20} /></button>
-        <textarea class="input chat-input" ref={inputEl} rows={1} value={text} enterKeyHint="send" name="chat-message" autocomplete="off" autocapitalize="sentences" spellcheck={false}
+        <textarea class="input chat-input" ref={inputEl} rows={1} value={text} enterkeyhint="send" name="chat-message" autocomplete="off" autocapitalize="sentences" spellcheck={false}
           data-lpignore="true" data-1p-ignore="true" data-form-type="other"
           placeholder={lock ? t('chatLocked') : t('messageAs', { name: seatName(v, me, true) })}
           onInput={(e) => { const el = e.target as HTMLTextAreaElement; const val = el.value; setText(val); el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 112) + 'px'; if (Date.now() - lastTyping.current > 2500 && val) { lastTyping.current = Date.now(); sendTyping(conv === 'group' ? 'group' : Number(conv)); } }}

@@ -429,6 +429,19 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
   const typing = typingMap.value[conv === 'group' ? 'group' : conv] > now;
   const lastId = msgs.length ? msgs[msgs.length - 1].id : 0;
 
+  // Android "back" hides the keyboard but leaves the field focused: drop focus so the full UI comes back
+  useEffect(() => {
+    const vv = window.visualViewport;
+    let last = vv ? vv.height : window.innerHeight;
+    const onResize = () => {
+      const h = vv ? vv.height : window.innerHeight;
+      if (h > last + 80 && document.activeElement === inputEl.current) inputEl.current?.blur();
+      last = h;
+    };
+    (vv ?? window).addEventListener('resize', onResize);
+    return () => { (vv ?? window).removeEventListener('resize', onResize); composing.value = false; };
+  }, []);
+
   useEffect(() => {
     readMap.value = { ...readMap.value, [conv]: Math.max(readMap.value[conv] ?? 0, lastId) };
     const el = thread.current; if (el) el.scrollTop = el.scrollHeight;

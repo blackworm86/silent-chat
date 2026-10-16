@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { signal } from '@preact/signals';
 import { view, send, vmItems, unlockAudio } from '../net';
 import { rules } from '../../shared/rules';
 import { t, Btn, Panel } from './common';
@@ -35,6 +36,17 @@ export function startAudio(offsetSec: number) {
   send({ type: 'startGame', source: 'manual' });
 }
 export function setVideoVolume(v: number) { try { yt.player?.setVolume(v); } catch { /* ignore */ } }
+
+/** True while the sound device has its audio tab open during play (the dock then slides into view). */
+export const soundSheet = signal(false);
+export type DockMode = 'top' | 'sheet' | 'parked' | 'inline';
+/**
+ * The ONE YouTube player of the sound device. It is mounted once, at a fixed place in the tree, for the whole game:
+ * moving or re-creating it would reload the video, so screens only change its CSS mode, never where it lives.
+ */
+export function SoundDock({ mode }: { mode: DockMode }) {
+  return <div class={`dock ${mode}`}><SoundPlayer big /></div>;
+}
 
 /** The visible YouTube player (must stay visible: min 200x200). Lives on the sound device only. */
 export function SoundPlayer({ big }: { big?: boolean }) {

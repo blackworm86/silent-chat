@@ -7,6 +7,7 @@ import { t, Btn, Muted, Modal, ListRow, Section, ConfirmSheet, TextLink, Waiting
 import { Lobby, Safety, Intro, Characters, Drives, Turns, Relations, Voicemail, Deal, Rules, Ready, QuickGuide } from './setup';
 import { PlayScreen, NotesTab, HostPanel, LightsOut, Toasts } from './play';
 import { Final, Playback, Debrief, Done } from './end';
+import { SoundDock, soundSheet, type DockMode } from './sound';
 import { dict } from '../i18n';
 import type { View } from '../../shared/types';
 
@@ -104,6 +105,7 @@ function Shell({ v }: { v: View }) {
   useEffect(() => { window.scrollTo(0, 0); }, [v.phase]);     // every phase starts at its top
   const showX = !['lobby', 'safety', 'play', 'done'].includes(v.phase);
   const noBar = ['done'].includes(v.phase);
+  const dock: DockMode | null = !v.me.isSound ? null : ['ready', 'final', 'playback'].includes(v.phase) ? 'top' : v.phase === 'play' && soundSheet.value ? 'sheet' : 'parked';
   const doDelete = async () => {
     setDeleting(true);
     try { await deleteSession(v.code); } finally { setDeleting(false); }
@@ -121,9 +123,10 @@ function Shell({ v }: { v: View }) {
           </header>
           {isFirebase() && v.me.isHost && ['lobby', 'ready'].includes(v.phase) && <div class="hostnote"><Monitor size={18} style={{ flex: 'none', marginTop: '1px' }} /><span>{t('hostKeepOpen')}</span></div>}
           {isFirebase() && !v.me.isHost && hostOffline.value && <div class="hostnote warn"><WifiOff size={18} style={{ flex: 'none', marginTop: '1px' }} /><span>{t('hostOffline')}</span></div>}
-          <main class={`main ${noBar ? 'no-bar' : ''}`}><Screen v={v} /></main>
+          <main class={`main ${noBar ? 'no-bar' : ''} ${dock === 'top' ? 'with-dock' : ''}`}><Screen v={v} /></main>
         </>
       )}
+      {dock && <SoundDock mode={dock} />}
       {showX && <button class="xfloat" aria-label={t('xCard')} onClick={() => send({ type: 'safety', kind: 'x', text: '' })}>X</button>}
 
       {sheet === 'menu' && (

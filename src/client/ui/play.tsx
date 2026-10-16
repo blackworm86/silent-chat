@@ -7,7 +7,7 @@ import {
 import { view, send, chat, typingMap, sendTyping, toasts, dismissToast, errors, dismissError } from '../net';
 import { C, tx, clueCard, clueVariants, cardName, searchText, charName, fmtClock, dayWord } from '../content';
 import { t, Btn, Panel, Label, Muted, Avatar, seatName, Countdown, useRemaining, useNow, Modal, useLocalState, UnofficialTag, showUnofficial, Section, ListRow, ConfirmSheet, TextLink } from './common';
-import { SoundPlayer } from './sound';
+import { soundSheet } from './sound';
 import { DealPlan } from './setup';
 import { rules } from '../../shared/rules';
 import type { View, HandView, CardRef, ChatMsg } from '../../shared/types';
@@ -524,6 +524,7 @@ export function PlayScreen({ v, onMenu }: { v: View; onMenu?: () => void }) {
   const [tab, setTab] = useState<Tab>(chatApp ? 'chat' : 'cards');
   const ready = v.hands.find((h) => h.status === 'unlocked');
   const unread = chatApp && tab !== 'chat' ? unreadCount(v) : 0;
+  useEffect(() => { soundSheet.value = tab === 'sound'; return () => { soundSheet.value = false; }; }, [tab]);
   const tabs: { k: Tab; icon: any; label: string; badge?: string | number }[] = [
     ...(chatApp ? [{ k: 'chat' as Tab, icon: <MessageCircle size={22} />, label: t('tabChat'), badge: unread || undefined }] : []),
     { k: 'cards', icon: <Layers size={22} />, label: t('tabCards'), badge: ready ? '!' : undefined },
@@ -542,8 +543,8 @@ export function PlayScreen({ v, onMenu }: { v: View; onMenu?: () => void }) {
         {tab === 'cards' && <div class="scroll"><CardsTab v={v} /></div>}
         {tab === 'table' && <div class="scroll"><TableView v={v} /></div>}
         {tab === 'notes' && <div class="scroll"><NotesTab v={v} /></div>}
-        {/* the player must stay rendered & visible on the sound device; it is parked off-screen unless its tab is open */}
-        {v.me.isSound && <div class={tab === 'sound' ? 'scroll' : 'sound-parked'}><SoundPlayer /></div>}
+        {/* the player itself lives in the app shell (SoundDock) so it survives phase changes; this tab only brings it into view */}
+        {tab === 'sound' && <div class="scroll"><Muted>{t('soundHere')}</Muted></div>}
       </div>
       <nav class="tabbar" role="tablist">
         {tabs.map((x) => (

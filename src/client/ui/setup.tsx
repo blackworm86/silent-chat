@@ -5,7 +5,7 @@ import { Share2, KeyRound, SlidersHorizontal, ChevronRight, Pencil, Check, Table
 import { send } from '../net';
 import { C, tx, character, drive, posterUrl, dayWord, inviteUrl } from '../content';
 import { t, Btn, Panel, Label, Muted, Avatar, seatName, UnofficialTag, showUnofficial, ActionBar, Waiting, TextLink, Section, ListRow, Modal, Switch } from './common';
-import { SoundPlayer, startAudio } from './sound';
+import { startAudio } from './sound';
 import { rules } from '../../shared/rules';
 import type { Sources, View } from '../../shared/types';
 
@@ -530,7 +530,6 @@ export function Ready({ v }: { v: View }) {
         <p>{t('startHint')}</p>
         <Muted small>{v.settings.soundDevice === 'table' ? t('soundTableHint') : t('soundHostHint')}</Muted>
       </Panel>
-      {isSound && <SoundPlayer big />}
       <ActionBar>
         {isSound && <Btn icon={<Play size={20} />} onClick={() => startAudio(v.settings.videoOffsetSec)}>{t('startGame')}</Btn>}
         {host && isSound && <TextLink onClick={() => send({ type: 'startGame', source: 'manual' })}>{t('startManual')}</TextLink>}

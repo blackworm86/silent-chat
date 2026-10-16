@@ -4,7 +4,7 @@ import { send, chat } from '../net';
 import { C, tx } from '../content';
 import { t, Btn, Panel, Label, Muted, seatName, UnofficialTag, showUnofficial, ActionBar, Waiting, Section, TextLink } from './common';
 import { ChatTab } from './play';
-import { SoundPlayer, VoicemailPlayer } from './sound';
+import { VoicemailPlayer } from './sound';
 import type { View } from '../../shared/types';
 
 function Next({ v, label }: { v: View; label?: string }) {
@@ -17,7 +17,6 @@ export function Final({ v }: { v: View }) {
     <>
       <Panel amber><h2>{t('timesUp')}</h2><p>{t('finalHint')}</p></Panel>
       {chatApp ? <ChatTab v={v} groupOnly /> : <Muted>{t('finalExternal')}</Muted>}
-      {v.me.isSound && <SoundPlayer />}
       <Next v={v} label={t('toVoicemails')} />
     </>
   );
@@ -27,7 +26,7 @@ export function Playback({ v }: { v: View }) {
   return (
     <>
       <Panel amber><h2>{t('voicemailsTitle')}</h2><p>{t('playbackHint')}</p></Panel>
-      {v.me.isSound ? <><SoundPlayer /><VoicemailPlayer /></> : <Muted>{v.settings.soundDevice === 'table' ? t('listenTable') : t('listenHost')}</Muted>}
+      {v.me.isSound ? <VoicemailPlayer /> : <Muted>{v.settings.soundDevice === 'table' ? t('listenTable') : t('listenHost')}</Muted>}
       <Next v={v} label={t('toDebrief')} />
     </>
   );

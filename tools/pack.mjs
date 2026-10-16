@@ -13,7 +13,7 @@ if (!passphrase || passphrase.length < 6) {
   console.error('\nERROR: set PACK_PASSPHRASE (at least 6 characters). Example:\n  PACK_PASSPHRASE="my secret words" npm run build\n');
   process.exit(1);
 }
-const ITER = 600000;
+const ITER = Number(process.env.PACK_ITERATIONS) || 600000;   // PACK_ITERATIONS is only for tests
 const salt = crypto.randomBytes(16);
 const key = crypto.pbkdf2Sync(passphrase, salt, ITER, 32, 'sha256');
 

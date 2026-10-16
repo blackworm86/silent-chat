@@ -1,10 +1,13 @@
 import { bytesToB64, b64ToBytes, encryptBytes, decryptBytes } from '../../shared/packcrypto';
 
+/** Tests lower this; production keeps the strong default. */
+export const kdf = { iterations: 120000 };
+
 /** Key shared by everyone who knows the group passphrase AND the room code. */
 export async function deriveBusKey(passphrase: string, code: string): Promise<CryptoKey> {
   const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(passphrase), 'PBKDF2', false, ['deriveKey']);
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: new TextEncoder().encode('aim-bus-v1:' + code.toUpperCase()) as BufferSource, iterations: 120000, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: new TextEncoder().encode('aim-bus-v1:' + code.toUpperCase()) as BufferSource, iterations: kdf.iterations, hash: 'SHA-256' },
     base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
   );
 }

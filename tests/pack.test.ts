@@ -6,7 +6,7 @@ import { deriveKey, decryptBytes, encryptBytes } from '../src/shared/packcrypto'
 describe('encrypted content pack', () => {
   it('tools/pack.mjs output is decryptable by the browser-side WebCrypto code, and wrong passphrases fail', async () => {
     const out = 'tmp-pack-test';
-    execFileSync('node', ['tools/pack.mjs', '--out', out], { env: { ...process.env, PACK_PASSPHRASE: 'correct horse' }, stdio: 'pipe' });
+    execFileSync('node', ['tools/pack.mjs', '--out', out], { env: { ...process.env, PACK_PASSPHRASE: 'correct horse', PACK_ITERATIONS: '1000' }, stdio: 'pipe' });
     const man = JSON.parse(fs.readFileSync(out + '/manifest.json', 'utf8'));
     const key = await deriveKey('correct horse', man.salt, man.iterations);
     const plain = await decryptBytes(key, new Uint8Array(fs.readFileSync(out + '/content.enc')));

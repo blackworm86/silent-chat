@@ -63,5 +63,6 @@ maybe('real <App/> against the relay (jsdom WebSocket)', () => {
     cleanup();
     expect(chat.value).toEqual([]);
     b.close(); c.close();
+    await new Promise((r) => setTimeout(r, 150));     // let queued UI effects finish before teardown
   }, 20000);
 });

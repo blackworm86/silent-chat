@@ -10,7 +10,7 @@ const dir = 'tmp-unlock-pack';
 
 maybe('client unlock flow against an encrypted pack', () => {
   it('rejects a wrong passphrase, accepts the right one, then decrypts content and posters', async () => {
-    execFileSync('node', ['tools/pack.mjs', '--out', dir], { env: { ...process.env, PACK_PASSPHRASE: 'friends-only-2026' }, stdio: 'pipe' });
+    execFileSync('node', ['tools/pack.mjs', '--out', dir], { env: { ...process.env, PACK_PASSPHRASE: 'friends-only-2026', PACK_ITERATIONS: '1000' }, stdio: 'pipe' });
     (globalThis as any).fetch = async (u: string) => {
       const name = String(u).split('/pack/')[1];
       const buf = fs.readFileSync(`${dir}/${name}`);

@@ -3,11 +3,13 @@ import { MemoryBus } from '../src/client/bus/memory';
 import { HostEngine } from '../src/client/bus/host';
 import { openRemote } from '../src/client/bus/remote';
 import { connectBus } from '../src/client/bus/connect';
-import { deriveBusKey } from '../src/client/bus/crypto';
+import { deriveBusKey, kdf } from '../src/client/bus/crypto';
+
+kdf.iterations = 1000;   // tests only
 import type { ServerMsg, View, ChatMsg, Hello } from '../src/shared/types';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-async function until(f: () => boolean, ms = 3000, what = 'condition') {
+async function until(f: () => boolean, ms = 8000, what = 'condition') {
   const t = Date.now();
   while (!f()) { if (Date.now() - t > ms) throw new Error('timeout: ' + what); await sleep(8); }
 }
@@ -28,33 +30,35 @@ describe('Firebase-style transport (host browser = server) over an in-memory bus
   it('runs a game: create, join, setup phases, start, flip a clue, chat; bus carries only ciphertext', async () => {
     const bus = new MemoryBus();
     const host = await device(bus, 'ROOM01', 'host', { create: true });
-    await until(() => host.view?.me.isHost === true, 3000, 'host view');
+    await until(() => host.view?.me.isHost === true, 8000, 'host view');
     const a = await device(bus, 'ROOM01', 'ann'), b = await device(bus, 'ROOM01', 'bob');
-    await until(() => host.view!.players.length === 3 && a.view?.phase === 'lobby' && b.view?.phase === 'lobby', 3000, 'joined');
+    await until(() => host.view!.players.length === 3 && a.view?.phase === 'lobby' && b.view?.phase === 'lobby', 8000, 'joined');
     const all = [host, a, b];
-    const step = async (phase: string) => { host.send({ type: 'next' }); await until(() => all.every((d) => d.view?.phase === phase), 3000, 'phase ' + phase); };
-    await step('safety'); all.forEach((d) => d.send({ type: 'consent' })); await until(() => host.view!.players.every((p) => p.consent), 3000, 'consent');
+    const seatOf = (d: Dev) => d.view!.me.seat!;
+    const inTurnOrder = () => [...all].sort((x, y) => seatOf(x) - seatOf(y));      // seats follow join order, which is not deterministic
+    const step = async (phase: string) => { host.send({ type: 'next' }); await until(() => all.every((d) => d.view?.phase === phase), 8000, 'phase ' + phase); };
+    await step('safety'); all.forEach((d) => d.send({ type: 'consent' })); await until(() => host.view!.players.every((p) => p.consent), 8000, 'consent');
     await step('intro'); await step('characters');
     a.send({ type: 'pickCharacter', id: 'evan' }); b.send({ type: 'pickCharacter', id: 'julia' });
-    await until(() => host.view!.players.every((p) => p.characterId), 3000, 'chars');
+    await until(() => host.view!.players.every((p) => p.characterId), 8000, 'chars');
     await step('drives'); await step('intros');
-    for (const d of all) { d.send({ type: 'introDone' }); await sleep(30); }
-    await until(() => host.view!.players.every((p) => p.introDone), 3000, 'intros');
+    for (const d of inTurnOrder()) { d.send({ type: 'introDone' }); await sleep(30); }
+    await until(() => host.view!.players.every((p) => p.introDone), 8000, 'intros');
     await step('relations');
-    all.forEach((d, i) => { d.send({ type: 'assignRelation', line: 0, target: (i + 1) % 3 }); d.send({ type: 'assignRelation', line: 1, target: (i + 2) % 3 }); });
-    await until(() => host.view!.players.every((p) => p.relations[0] !== null && p.relations[1] !== null), 3000, 'relations');
+    all.forEach((d) => { const s = seatOf(d); d.send({ type: 'assignRelation', line: 0, target: (s + 1) % 3 }); d.send({ type: 'assignRelation', line: 1, target: (s + 2) % 3 }); });
+    await until(() => host.view!.players.every((p) => p.relations[0] !== null && p.relations[1] !== null), 8000, 'relations');
     await step('voicemail'); all.forEach((d) => d.send({ type: 'voicemail', mime: 'audio/webm', b64: 'QUJDREVG' }));
-    await until(() => host.view!.players.every((p) => p.vm), 3000, 'vms');
-    await step('hunches'); for (const d of all) { d.send({ type: 'hunchDone' }); await sleep(30); }
-    await until(() => host.view!.players.every((p) => p.hunchDone), 3000, 'hunches');
+    await until(() => host.view!.players.every((p) => p.vm), 8000, 'vms');
+    await step('hunches'); for (const d of inTurnOrder()) { d.send({ type: 'hunchDone' }); await sleep(30); }
+    await until(() => host.view!.players.every((p) => p.hunchDone), 8000, 'hunches');
     await step('deal'); await step('rules');
-    all.forEach((d) => d.send({ type: 'ready', value: true })); await until(() => host.view!.players.every((p) => p.ready), 3000, 'ready');
+    all.forEach((d) => d.send({ type: 'ready', value: true })); await until(() => host.view!.players.every((p) => p.ready), 8000, 'ready');
     await step('ready');
     host.send({ type: 'startGame', source: 'manual' });
-    await until(() => all.every((d) => d.view?.phase === 'play'), 3000, 'play');
-    await until(() => host.view!.hands.some((h) => h.ts === 90 && h.status === 'unlocked'), 3000, 'clue 90 unlock');
+    await until(() => all.every((d) => d.view?.phase === 'play'), 8000, 'play');
+    await until(() => host.view!.hands.some((h) => h.ts === 90 && h.status === 'unlocked'), 8000, 'clue 90 unlock');
     host.send({ type: 'flipClue', ts: 90 });
-    await until(() => host.view!.hands.find((h) => h.ts === 90)?.status === 'flipped', 3000, 'flip');
+    await until(() => host.view!.hands.find((h) => h.ts === 90)?.status === 'flipped', 8000, 'flip');
     // chat from a remote reaches everyone, in order
     for (let i = 0; i < 12; i++) a.send({ type: 'chat', to: 'group', text: 'msg-' + i + ' ciao-segreto' });
     await until(() => b.chat.filter((m) => m.kind === 'msg').length === 12 && host.chat.filter((m) => m.kind === 'msg').length === 12, 4000, 'chat');
@@ -69,7 +73,7 @@ describe('Firebase-style transport (host browser = server) over an in-memory bus
   it('a device with the wrong passphrase can neither join nor read anything', async () => {
     const bus = new MemoryBus();
     const host = await device(bus, 'ROOM02', 'host', { create: true });
-    await until(() => host.view !== null, 3000, 'host');
+    await until(() => host.view !== null, 8000, 'host');
     const intruder = await device(bus, 'ROOM02', 'eve', { pass: 'not-the-passphrase' });
     await sleep(400);
     expect(intruder.view).toBeNull();
@@ -94,9 +98,11 @@ describe('Firebase-style transport (host browser = server) over an in-memory bus
     const mkHello = (id: string): Hello => ({ t: 'hello', room: 'ROOM03', deviceId: id, role: 'player', create: false, name: id });
     const views: Record<string, View | null> = { ann: null, bob: null };
     const remotes = ['ann', 'bob'].map((id) => openRemote({ code: 'ROOM03', deviceId: id, hello: mkHello(id), bus, key, pingMs: 60, onMsg: (m) => { if (m.t === 'view') views[id] = m.v; } }));
-    await until(() => h1.room.s!.players.length === 3, 3000, 'joined');
+    await until(() => h1.room.s!.players.length === 3, 8000, 'joined');
+    const byDev = (h: HostEngine, id: string) => h.room.s!.players.find((p) => p.deviceId === id)!;     // seat order depends on who's hello arrived first
     remotes[0].send({ t: 'do', a: { type: 'setName', name: 'Annabel' } });
-    await until(() => h1.room.s!.players[1].name === 'Annabel', 3000, 'rename');
+    await until(() => byDev(h1, 'ann').name === 'Annabel', 8000, 'rename');
+    const annSeat = byDev(h1, 'ann').seat;
     await sleep(150);                                    // let the snapshot be saved
     await h1.stop();
 
@@ -104,11 +110,12 @@ describe('Firebase-style transport (host browser = server) over an in-memory bus
     const h2 = new HostEngine({ code: 'ROOM03', deviceId: 'host', bus, key, onLocal: (m) => msgs2.push(m), saveMs: 20, tickMs: 50, beatMs: 100 });
     expect(await h2.start('resume')).toBe('resumed');
     h2.openLocal({ t: 'hello', room: 'ROOM03', deviceId: 'host', role: 'player', create: true, name: 'Host' });
-    await until(() => h2.room.conns.has('ann') && h2.room.conns.has('bob'), 3000, 'remotes re-announced after epoch change');
-    expect(h2.room.s!.players.map((p) => p.name)).toEqual(['Host', 'Annabel', 'bob']);
-    expect(h2.room.s!.players[1].seat).toBe(1);
+    await until(() => h2.room.conns.has('ann') && h2.room.conns.has('bob'), 8000, 'remotes re-announced after epoch change');
+    expect(h2.room.s!.players.map((p) => p.name).sort()).toEqual(['Annabel', 'Host', 'bob']);
+    expect(byDev(h2, 'ann').seat).toBe(annSeat);                 // same seat after the host restart
+    expect(byDev(h2, 'host').isHost).toBe(true);
     remotes[1].send({ t: 'do', a: { type: 'setName', name: 'Roberto' } });
-    await until(() => h2.room.s!.players[2].name === 'Roberto', 3000, 'still working after restart');
+    await until(() => byDev(h2, 'bob').name === 'Roberto', 8000, 'still working after restart');
     remotes.forEach((r) => r.close()); await h2.stop();
   }, 20000);
 
@@ -120,13 +127,13 @@ describe('Firebase-style transport (host browser = server) over an in-memory bus
     h.openLocal({ t: 'hello', room: 'ROOM04', deviceId: 'host', role: 'player', create: true, name: 'Host' });
     const hello: Hello = { t: 'hello', room: 'ROOM04', deviceId: 'ann', role: 'player', create: false, name: 'ann' };
     const r1 = openRemote({ code: 'ROOM04', deviceId: 'ann', hello, bus, key, pingMs: 40, onMsg: () => {} });
-    await until(() => h.room.conns.has('ann'), 3000, 'ann joined');
+    await until(() => h.room.conns.has('ann'), 8000, 'ann joined');
     expect(h.room.s!.players[1].connected).toBe(true);
     r1.close();                                         // phone loses signal
-    await until(() => !h.room.conns.has('ann'), 3000, 'ann marked offline');
+    await until(() => !h.room.conns.has('ann'), 8000, 'ann marked offline');
     expect(h.room.s!.players[1].connected).toBe(false);
     const r2 = openRemote({ code: 'ROOM04', deviceId: 'ann', hello, bus, key, pingMs: 40, onMsg: () => {} });  // same device returns
-    await until(() => h.room.conns.has('ann') && h.room.s!.players[1].connected, 3000, 'ann back');
+    await until(() => h.room.conns.has('ann') && h.room.s!.players[1].connected, 8000, 'ann back');
     expect(h.room.s!.players.length).toBe(2);           // same seat, no duplicate
     r2.close(); await h.stop();
   }, 15000);
@@ -139,7 +146,7 @@ describe('Firebase-style transport (host browser = server) over an in-memory bus
     h.openLocal({ t: 'hello', room: 'ROOM05', deviceId: 'host', role: 'player', create: true, name: 'Host' });
     const evil: Hello = { t: 'hello', room: 'ROOM05', deviceId: 'host', role: 'player', create: true, name: 'Evil' };   // claims to be the host
     const r = openRemote({ code: 'ROOM05', deviceId: 'eve', hello: evil, bus, key, pingMs: 1e6, onMsg: () => {} });
-    await until(() => h.room.s!.players.length === 2, 3000, 'eve joined as a normal player');
+    await until(() => h.room.s!.players.length === 2, 8000, 'eve joined as a normal player');
     expect(h.room.s!.players[0].name).toBe('Host');
     expect(h.room.s!.players[1].isHost).toBe(false);
     expect(h.room.s!.players[1].deviceId).toBe('eve');

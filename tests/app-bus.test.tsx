@@ -7,6 +7,9 @@ import { config } from '../src/client/config';
 import { App } from '../src/client/App';
 import { view } from '../src/client/net';
 import { MemoryBus } from '../src/client/bus/memory';
+import { kdf } from '../src/client/bus/crypto';
+
+kdf.iterations = 1000;   // tests only
 import { setBusFactory, connectBus } from '../src/client/bus/connect';
 import type { ServerMsg, View } from '../src/shared/types';
 
@@ -51,5 +54,6 @@ maybe('real <App/> in Firebase mode (host browser = server), in-memory bus', () 
     await screen.findByText(/Silent Falls/);
     cleanup();
     remotes.forEach((r) => r.w.close());
+    await new Promise((r) => setTimeout(r, 150));     // let queued UI effects finish before the simulated browser is torn down
   }, 30000);
 });

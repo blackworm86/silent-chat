@@ -128,41 +128,43 @@ export function Lobby({ v }: { v: View }) {
   const saveName = () => { if (name.trim()) send({ type: 'setName', name: name.trim() }); setEditing(false); };
   return (
     <>
-      <section class="section">
-        <div class="stack tight center-text">
-          <h2>{t('inviteFriends')}</h2>
-          <Muted small>{t('inviteHow')}</Muted>
-        </div>
+      <section class="invite">
         <Qr text={inviteUrl(v.code, 'r')} />
-        <div class="code" aria-label={`${t('roomCode')} ${v.code.split('').join(' ')}`}>{v.code}</div>
-        <Btn kind="ghost" icon={shared ? <Check size={18} /> : <Share2 size={18} />} onClick={share}>{shared ? t('copied') : t('share')}</Btn>
-        <TextLink onClick={() => setTableQr(!tableQr)}><Tablet size={16} />{t('showTableQr')}</TextLink>
-        {tableQr && <Qr small text={inviteUrl(v.code, 't')} />}
-        <p class="faint small center-text"><KeyRound size={13} style={{ verticalAlign: '-2px', marginRight: '4px' }} />{t('inviteSecretNote')}</p>
+        <div class="invite-side">
+          <h2>{t('inviteFriends')}</h2>
+          <div class="code" aria-label={`${t('roomCode')} ${v.code.split('').join(' ')}`}>{v.code}</div>
+          <Btn small kind="ghost" icon={shared ? <Check size={18} /> : <Share2 size={18} />} onClick={share}>{shared ? t('copied') : t('share')}</Btn>
+        </div>
       </section>
+      <p class="faint small center-text invite-note">
+        <KeyRound size={13} style={{ verticalAlign: '-2px', marginRight: '4px' }} />{t('inviteSecretNote')}
+      </p>
+      {tableQr && <Modal title={t('showTableQr')} onClose={() => setTableQr(false)}><Qr text={inviteUrl(v.code, 't')} /></Modal>}
 
       <Section title={`${t('players')} · ${v.players.length}/5`}>
-        <div class="list">
-          {v.players.map((p) => p.seat === self.seat && editing ? (
-            <div class="list-row" key={p.seat}>
-              <input class="input" autoFocus value={name} maxLength={20} onInput={(e) => setName((e.target as HTMLInputElement).value)} onKeyDown={(e) => e.key === 'Enter' && saveName()} />
-              <button class="icon-btn" aria-label={t('save')} onClick={saveName}><Check size={20} /></button>
-            </div>
-          ) : (
-            <ListRow key={p.seat} icon={<Avatar seat={p.seat} byName />}
-              sub={p.seat === self.seat ? t('you') : undefined}
-              end={<span class="row nowrap" style={{ gap: '8px' }}>
-                {p.isHost && <span class="tag">{t('host')}</span>}
-                <span class={`dot ${p.connected ? 'on' : ''}`} role="img" aria-label={p.connected ? t('online') : t('offline')} />
-                {p.seat === self.seat && <button class="icon-btn" aria-label={t('edit')} onClick={() => { setName(self.name); setEditing(true); }}><Pencil size={17} /></button>}
-              </span>}>
-              <b>{p.name}</b>
-            </ListRow>
-          ))}
-          <ListRow icon={<span class="avatar" style={{ width: '36px', height: '36px', background: 'var(--ink-2)', color: 'var(--fg-3)' }}><Tablet size={18} /></span>}
-            end={<span class={`dot ${v.tableConnected ? 'on' : ''}`} />}>
-            <span class="muted">{t('tableDevice')}</span><small>{v.tableConnected ? t('connected') : t('notConnected')}</small>
-          </ListRow>
+        {editing && (
+          <div class="row nowrap">
+            <input class="input" autoFocus value={name} maxLength={20} onInput={(e) => setName((e.target as HTMLInputElement).value)} onKeyDown={(e) => e.key === 'Enter' && saveName()} />
+            <button class="icon-btn" aria-label={t('save')} onClick={saveName}><Check size={20} /></button>
+          </div>
+        )}
+        <div class="seats">
+          {v.players.map((p) => {
+            const mine = p.seat === self.seat;
+            const body = <>
+              <Avatar seat={p.seat} size={30} byName />
+              <span class="seat-name"><b>{p.name}</b>{(mine || p.isHost) && <small>{[mine && t('you'), p.isHost && t('host')].filter(Boolean).join(' · ')}</small>}</span>
+              <span class={`dot ${p.connected ? 'on' : ''}`} role="img" aria-label={p.connected ? t('online') : t('offline')} />
+            </>;
+            return mine
+              ? <button class="seat" key={p.seat} aria-label={`${p.name}, ${t('edit')}`} onClick={() => { setName(self.name); setEditing(true); }}>{body}<Pencil size={14} class="faint" /></button>
+              : <div class="seat" key={p.seat}>{body}</div>;
+          })}
+          <button class="seat ghost" aria-label={t('showTableQr')} onClick={() => setTableQr(true)}>
+            <span class="avatar" style={{ width: '30px', height: '30px', background: 'var(--ink-2)', color: 'var(--fg-3)' }}><Tablet size={16} /></span>
+            <span class="seat-name"><span class="muted">{t('tableDevice')}</span><small>{v.tableConnected ? t('connected') : t('notConnected')}</small></span>
+            {v.tableConnected ? <span class="dot on" /> : <span class="tag">QR</span>}
+          </button>
         </div>
       </Section>
 
@@ -191,26 +193,25 @@ export function Safety({ v }: { v: View }) {
         {v.safety.items.length > 0 && (
           <div class="list">{v.safety.items.map((i) => <ListRow key={i.id} icon={<span class={`tag ${i.kind}`}>{i.kind === 'line' ? t('line') : t('veil')}</span>}>{i.text}</ListRow>)}</div>
         )}
-        <div class="chips">
+        <div class="chips strip">
           {(['sugGore', 'sugConsent', 'sugBlame'] as const).filter((k) => !v.safety.items.some((i) => i.text === t(k))).map((k) => (
-            <button class="chip dashed" key={k} onClick={() => add('veil', t(k))}><Plus size={15} />{t('veil')}: {t(k)}</button>
+            <button class="chip dashed small" key={k} aria-label={`${t('add')} ${t('veil')}: ${t(k)}`} onClick={() => add('veil', t(k))}><Plus size={14} />{t(k)}</button>
           ))}
         </div>
-        <div class="seg small" style={{ alignSelf: 'flex-start' }}>
-          <button class={kind === 'line' ? 'on' : ''} onClick={() => setKind('line')}>{t('line')}</button>
-          <button class={kind === 'veil' ? 'on' : ''} onClick={() => setKind('veil')}>{t('veil')}</button>
-        </div>
         <div class="row nowrap">
+          <div class="seg small" role="group" aria-label={t('linesAndVeils')}>
+            <button class={kind === 'line' ? 'on' : ''} aria-pressed={kind === 'line'} onClick={() => setKind('line')}>{t('line')}</button>
+            <button class={kind === 'veil' ? 'on' : ''} aria-pressed={kind === 'veil'} onClick={() => setKind('veil')}>{t('veil')}</button>
+          </div>
           <input class="input" value={text} maxLength={120} placeholder={t('addTopic')} onInput={(e) => setText((e.target as HTMLInputElement).value)} onKeyDown={(e) => { if (e.key === 'Enter') { add(kind, text); setText(''); } }} />
           <Btn small full={false} kind="ghost" label={t('add')} disabled={!text.trim()} onClick={() => { add(kind, text); setText(''); }}><Plus size={20} /></Btn>
         </div>
       </Section>
-      <Section title={t('xCard')}>
-        <div class="row nowrap" style={{ alignItems: 'flex-start' }}><ShieldAlert size={20} class="warn" /><p class="muted">{t('safetyX')}</p></div>
-      </Section>
-      <Section title={t('openDoor')}>
-        <div class="row nowrap" style={{ alignItems: 'flex-start' }}><DoorOpen size={20} class="faint" /><p class="muted">{t('safetyDoor')}</p></div>
-      </Section>
+      <details class="notes">
+        <summary><ShieldAlert size={18} class="warn" /><b>{t('xCard')}</b><span class="faint">·</span><DoorOpen size={18} class="faint" /><b>{t('openDoor')}</b><ChevronRight size={18} class="chev" /></summary>
+        <p><ShieldAlert size={18} class="warn" /><span>{t('safetyX')}</span></p>
+        <p><DoorOpen size={18} class="faint" /><span>{t('safetyDoor')}</span></p>
+      </details>
       <PhaseBar v={v} blocked={!all} status={`${count(v, (p) => p.consent)} ${t('agreed')}`}
         personal={!self.consent ? <Btn onClick={() => send({ type: 'consent' })}>{t('consentBtn')}</Btn> : undefined} />
     </>
@@ -221,6 +222,7 @@ export function Safety({ v }: { v: View }) {
 export function Intro({ v }: { v: View }) {
   const intro = C().specialCards.intro;
   const physical = v.settings.sources.poster === 'physical';
+  const [big, setBig] = useState(false);
   return (
     <>
       <article class="gcard">
@@ -229,16 +231,18 @@ export function Intro({ v }: { v: View }) {
         <p class="accent"><b>{tx(intro.instruction)}</b></p>
       </article>
       <Section title={t('missingPoster')}>
-        {v.posterIndex !== null && <div style={{ maxWidth: '300px', width: '100%', margin: '0 auto' }}><Poster index={v.posterIndex} /></div>}
-        {physical && v.posterIndex === null && <Muted small>{t('pickPosterHint')}</Muted>}
+        <div class="poster-row">
+          {v.posterIndex !== null && <button class="poster-thumb" aria-label={t('missingPoster')} onClick={() => setBig(true)}><Poster index={v.posterIndex} /></button>}
+          <Muted small>{physical && v.posterIndex === null ? t('pickPosterHint') : t('dayBanner', { day: dayWord(v.settings.dayOfWeek) })}</Muted>
+        </div>
+        {big && v.posterIndex !== null && <Modal title={t('missingPoster')} onClose={() => setBig(false)}><Poster index={v.posterIndex} /></Modal>}
         {physical && (
-          <div class="poster-grid">
+          <div class="poster-grid strip">
             {Array.from({ length: rules.posterCount }, (_, i) => (
               <button key={i} class={v.posterIndex === i ? 'on' : ''} aria-label={`Poster ${i + 1}`} onClick={() => send({ type: 'pickPoster', index: i })}><Poster index={i} /></button>
             ))}
           </div>
         )}
-        <Muted small>{t('dayBanner', { day: dayWord(v.settings.dayOfWeek) })}</Muted>
       </Section>
       <PhaseBar v={v} blocked={v.posterIndex === null} />
     </>
@@ -255,6 +259,23 @@ function CharacterBody({ id, showSecret = true }: { id: string; showSecret?: boo
     </>
   );
 }
+/** One section at a time, so the whole card fits on a phone without scrolling. */
+function CharacterTabs({ id }: { id: string }) {
+  const c = character(id)!;
+  const [tab, setTab] = useState<'background' | 'secret' | 'voicemailPrompt'>('background');
+  const text = tab === 'background' ? c.background : tab === 'secret' ? c.secret : c.voicemailPrompt;
+  return (
+    <>
+      <div class="seg small" role="tablist">
+        {(['background', 'secret', 'voicemailPrompt'] as const).map((k) => (
+          <button key={k} role="tab" aria-selected={tab === k} class={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t(k === 'voicemailPrompt' ? 'voicemailShort' : k)}</button>
+        ))}
+      </div>
+      <p class="char-text" role="tabpanel">{tx(text)}</p>
+    </>
+  );
+}
+
 export function CharacterCard({ id, showSecret = true }: { id: string; showSecret?: boolean }) {
   const c = character(id)!;
   return (
@@ -273,24 +294,34 @@ export function Characters({ v }: { v: View }) {
   const showAll = v.settings.showSecretsWhileChoosing;
   return (
     <>
-      <Muted>{t('chooseCharacter')}</Muted>
-      {rules.characters.map((ch) => {
-        const owner = taken.get(ch.id);
-        const mine = owner?.seat === self.seat;
-        const c = character(ch.id)!;
-        return (
-          <article class={`gcard pick ${mine ? 'mine' : ''} ${owner && !mine ? 'taken' : ''}`} key={ch.id}>
-            <div class="row between nowrap" style={{ alignItems: 'flex-start' }}>
-              <div class="grow"><h2>{c.name}</h2><p class="muted">{tx(c.title)}</p></div>
-              {owner ? <span class="tag accent">{mine ? t('you') : owner.name}</span> : ch.facilitator ? <span class="tag">{t('facilitator')}</span> : null}
-            </div>
-            {showAll || mine ? <CharacterBody id={ch.id} /> : <p class="faint small">{t('secretHidden')}</p>}
-            {mine && showUnofficial() && <UnofficialTag />}
-            {!owner && !ch.facilitator && !self.characterId && <Btn kind="ghost" onClick={() => send({ type: 'pickCharacter', id: ch.id })}>{t('pick')}</Btn>}
-            {mine && !self.isHost && <TextLink onClick={() => send({ type: 'unpickCharacter' })}>{t('change')}</TextLink>}
-          </article>
-        );
-      })}
+      {self.characterId ? (
+        <article class="gcard pick mine">
+          <div class="row between nowrap" style={{ alignItems: 'flex-start' }}>
+            <div class="grow"><h2>{character(self.characterId)!.name}</h2><p class="muted">{tx(character(self.characterId)!.title)}</p></div>
+            <span class="tag accent">{t('you')}</span>
+          </div>
+          <CharacterTabs id={self.characterId} />
+          {showUnofficial() && <UnofficialTag />}
+          {!self.isHost && <TextLink onClick={() => send({ type: 'unpickCharacter' })}>{t('change')}</TextLink>}
+        </article>
+      ) : <Muted>{t('chooseCharacter')}</Muted>}
+      <div class="list">
+        {rules.characters.filter((ch) => ch.id !== self.characterId).map((ch) => {
+          const owner = taken.get(ch.id);
+          const c = character(ch.id)!;
+          const free = !owner && !ch.facilitator && !self.characterId;
+          return (
+            <details class={`char-row ${owner ? 'taken' : ''}`} key={ch.id} open={false}>
+              <summary>
+                <span class="grow"><b>{c.name}</b><small>{tx(c.title)}</small></span>
+                {owner ? <span class="tag accent">{owner.name}</span> : ch.facilitator ? <span class="tag">{t('facilitator')}</span> : null}
+                {free && <button class="btn ghost small auto" onClick={(e) => { e.preventDefault(); send({ type: 'pickCharacter', id: ch.id }); }}>{t('pick')}</button>}
+              </summary>
+              <div class="char-more">{showAll ? <CharacterBody id={ch.id} /> : <><Label>{t('background')}</Label><p>{tx(c.background)}</p><p class="faint small">{t('secretHidden')}</p></>}</div>
+            </details>
+          );
+        })}
+      </div>
       <PhaseBar v={v} blocked={!v.players.every((p) => p.characterId)} status={`${count(v, (p) => !!p.characterId)} ${t('done')}`} />
     </>
   );
@@ -352,17 +383,18 @@ export function Turns({ v, kind }: { v: View; kind: 'intros' | 'hunches' }) {
           <Section title={t('locations')}>{C().locations.map((l: any) => <div class="mini" key={l.id}>{tx(l.name)}</div>)}</Section>
         </div>
       )}
-      <div class="list">
+      <ol class="turns" aria-label={t('turnOrder')}>
         {turn?.order.map((s) => {
           const p = v.players.find((x) => x.seat === s)!;
           const isCur = s === cur && !allDone;
           return (
-            <ListRow key={s} icon={<Avatar seat={s} />} end={doneOf(p) ? <Check size={20} class="ok" /> : isCur ? <span class="tag accent">{t('yourTurnTag')}</span> : undefined}>
-              <span class={isCur ? 'accent' : ''}><b>{seatName(v, s)}</b></span>
-            </ListRow>
+            <li key={s} class={`${isCur ? 'cur' : ''} ${doneOf(p) ? 'done' : ''}`} aria-current={isCur ? 'step' : undefined}>
+              <span class="turn-av"><Avatar seat={s} size={40} />{doneOf(p) && <Check size={14} class="turn-ok" />}</span>
+              <span class="turn-name">{seatName(v, s)}</span>
+            </li>
           );
         })}
-      </div>
+      </ol>
       <PhaseBar v={v} blocked={!allDone} status={`${count(v, doneOf)} ${t('done')}`}
         personal={myTurn ? <Btn onClick={() => send({ type: doneType })}>{t('imDone')}</Btn> : undefined} />
       {v.me.isHost && !allDone && !myTurn && cur !== null && (

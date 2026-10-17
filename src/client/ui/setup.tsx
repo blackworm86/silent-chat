@@ -154,7 +154,7 @@ export function Lobby({ v }: { v: View }) {
             const body = <>
               <Avatar seat={p.seat} size={30} byName />
               <span class="seat-name"><b>{p.name}</b>{(mine || p.isHost) && <small>{[mine && t('you'), p.isHost && t('host')].filter(Boolean).join(' · ')}</small>}</span>
-              <span class={`dot ${p.connected ? 'on' : ''}`} role="img" aria-label={p.connected ? t('online') : t('offline')} />
+              {!mine && <span class={`dot ${p.connected ? 'on' : ''}`} role="img" aria-label={p.connected ? t('online') : t('offline')} />}
             </>;
             return mine
               ? <button class="seat" key={p.seat} aria-label={`${p.name}, ${t('edit')}`} onClick={() => { setName(self.name); setEditing(true); }}>{body}<Pencil size={14} class="faint" /></button>

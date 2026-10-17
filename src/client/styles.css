@@ -204,6 +204,7 @@ button.list-row:active { background: var(--ink-2); }
 .invite-note .link { display: inline; min-height: 0; padding: 14px 0; font-size: inherit; }  /* inline padding widens the tap area without adding height */
 .seats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2); }
 .seat { display: flex; align-items: center; gap: var(--s2); min-height: 52px; padding: var(--s2) var(--s3); border-radius: var(--r-m); background: var(--ink-1); border: 0; color: var(--fg); text-align: left; font: inherit; min-width: 0; }
+.seat.ghost:nth-child(odd) { grid-column: 1 / -1; }  /* alone on its row: use the full width */
 .seat.ghost { background: transparent; box-shadow: inset 0 0 0 1px var(--hair); }
 .seat-name { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
 .seat-name b, .seat-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }

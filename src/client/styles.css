@@ -62,7 +62,7 @@ svg.lucide { flex: none; }
 .page { min-height: 100dvh; max-width: 560px; margin: 0 auto; }
 .page.center { display: grid; place-items: center; padding: calc(var(--safe-t) + var(--s5)) var(--s4) calc(var(--safe-b) + var(--s5)); }
 .page.table { max-width: 1100px; padding: calc(var(--safe-t) + var(--s5)) var(--s5) var(--s6); }
-.main { padding: var(--s4) var(--s4) calc(var(--bar-h) + var(--s5)); display: flex; flex-direction: column; gap: var(--s5); }
+.main { padding: var(--s4) var(--s4) calc(var(--bar-h) + 76px); display: flex; flex-direction: column; gap: var(--s5); }
 .main.no-bar { padding-bottom: calc(var(--safe-b) + var(--s6)); }
 .stack { display: flex; flex-direction: column; gap: var(--s3); }
 .stack.tight { gap: var(--s2); }
@@ -77,6 +77,8 @@ svg.lucide { flex: none; }
 /* ---------- top bar ---------- */
 .topbar { position: sticky; top: 0; z-index: 20; height: var(--head-h); padding: var(--safe-t) var(--s2) 0 var(--s4); display: flex; align-items: center; justify-content: space-between; gap: var(--s3); background: oklch(0.145 0.012 255 / 0.86); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--hair); }
 .topbar .title { font: 560 20px/1.1 var(--font-display); letter-spacing: -0.01em; }
+.topbar-end { display: flex; align-items: center; gap: var(--s2); }
+.topbar .xbtn { width: 40px; height: 40px; font-size: 16px; }
 .topbar .sub { font-size: 13px; color: var(--fg-3); }
 .brand { font: 560 22px/1 var(--font-display); letter-spacing: -0.02em; }
 
@@ -106,6 +108,7 @@ svg.lucide { flex: none; }
 .btn.danger { background: var(--danger); color: var(--danger-ink); }
 .btn.danger-ghost { background: var(--danger-soft); color: var(--danger); }
 .btn:disabled { opacity: 0.38; cursor: not-allowed; }
+.btn.primary:disabled, .btn.amber:disabled { opacity: 1; background: var(--ink-2); color: var(--fg-3); }
 .link { appearance: none; background: none; border: 0; padding: var(--s2) var(--s1); min-height: 44px; color: var(--fg-2); font-size: 15px; text-decoration: underline; text-decoration-color: var(--ink-3); text-underline-offset: 4px; display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); }
 .link.danger { color: var(--danger); text-decoration-color: var(--danger-soft); }
 .icon-btn { width: 44px; height: 44px; border-radius: var(--r-pill); border: 0; background: transparent; display: inline-grid; place-items: center; color: var(--fg); flex: none; }
@@ -293,13 +296,13 @@ button.list-row:active { background: var(--ink-2); }
 .composer { flex: none; display: flex; gap: var(--s2); align-items: center; padding: var(--s2) var(--s3) var(--s3); background: var(--ink-0); box-shadow: inset 0 1px 0 var(--hair); }
 .composer { align-items: flex-end; }
 .composer .input { min-height: 44px; border-radius: 22px; padding: 0 var(--s4); }
+.composer .chat-input::placeholder { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .composer .chat-input { resize: none; padding: 11px var(--s4); line-height: 22px; max-height: 112px; font: inherit; overflow-y: auto; }
 .composer .send { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--me); color: #fff; display: grid; place-items: center; flex: none; transition: opacity .15s; }
 .composer .send:disabled { opacity: 0.35; }
 .xbtn { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--danger); color: var(--danger-ink); font: 800 17px var(--font-ui); display: grid; place-items: center; flex: none; }
 .safety-btn { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--ink-2); color: var(--fg-2); display: grid; place-items: center; flex: none; }
 .lock-note { padding: 0 var(--s4) var(--s2); font-size: 13px; color: var(--danger); }
-.xfloat { position: fixed; right: var(--s4); bottom: calc(var(--safe-b) + 148px); z-index: 30; width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--danger); color: var(--danger-ink); font: 800 18px var(--font-ui); box-shadow: 0 6px 20px oklch(0 0 0 / 0.45); }
 
 /* ---------- sheets ---------- */
 .sheet-back { position: fixed; inset: 0; z-index: 60; background: oklch(0.08 0.01 255 / 0.72); display: flex; align-items: flex-end; justify-content: center; animation: fade .2s ease; }

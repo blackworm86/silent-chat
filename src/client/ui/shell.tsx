@@ -119,7 +119,10 @@ function Shell({ v }: { v: View }) {
         <>
           <header class="topbar">
             <div><div class="title">{t(('phase_' + v.phase) as keyof typeof dict.en)}</div><div class="sub num">{t('room')} {v.code}</div></div>
-            <button class="icon-btn" aria-label={t('menu')} onClick={() => setSheet('menu')}><Menu size={22} /></button>
+            <div class="topbar-end">
+              {showX && <button class="xbtn" aria-label={t('xCard')} onClick={() => send({ type: 'safety', kind: 'x', text: '' })}>X</button>}
+              <button class="icon-btn" aria-label={t('menu')} onClick={() => setSheet('menu')}><Menu size={22} /></button>
+            </div>
           </header>
           {isFirebase() && v.me.isHost && ['lobby', 'ready'].includes(v.phase) && <div class="hostnote"><Monitor size={18} style={{ flex: 'none', marginTop: '1px' }} /><span>{t('hostKeepOpen')}</span></div>}
           {isFirebase() && !v.me.isHost && hostOffline.value && <div class="hostnote warn"><WifiOff size={18} style={{ flex: 'none', marginTop: '1px' }} /><span>{t('hostOffline')}</span></div>}
@@ -127,7 +130,6 @@ function Shell({ v }: { v: View }) {
         </>
       )}
       {dock && <SoundDock mode={dock} />}
-      {showX && <button class="xfloat" aria-label={t('xCard')} onClick={() => send({ type: 'safety', kind: 'x', text: '' })}>X</button>}
 
       {sheet === 'menu' && (
         <Modal title={t('menu')} onClose={close}>

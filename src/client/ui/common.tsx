@@ -59,10 +59,10 @@ export function ActionBar(p: { children: ComponentChildren; status?: ComponentCh
 export const Waiting = (p: { children: ComponentChildren }) => <div class="waiting"><span class="pulse" aria-hidden="true" />{p.children}</div>;
 
 const AVATAR = ['oklch(0.8 0.09 250)', 'oklch(0.8 0.11 30)', 'oklch(0.8 0.1 300)', 'oklch(0.82 0.11 155)', 'oklch(0.86 0.11 95)'];
-export function Avatar({ seat, size = 36 }: { seat: number; size?: number }) {
+export function Avatar({ seat, size = 36, byName }: { seat: number; size?: number; byName?: boolean }) {
   const v = view.value;
   const pl = v?.players.find((x) => x.seat === seat);
-  const label = pl?.characterId ? charName(pl.characterId) : pl?.name ?? '?';
+  const label = (!byName && pl?.characterId ? charName(pl.characterId) : pl?.name) || '?';
   return (
     <span class="avatar" style={{ width: `${size}px`, height: `${size}px`, background: AVATAR[seat % 5], fontSize: `${Math.round(size * 0.42)}px` }} aria-hidden="true">
       {label.slice(0, 1).toUpperCase()}

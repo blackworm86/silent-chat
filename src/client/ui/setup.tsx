@@ -149,7 +149,7 @@ export function Lobby({ v }: { v: View }) {
               <button class="icon-btn" aria-label={t('save')} onClick={saveName}><Check size={20} /></button>
             </div>
           ) : (
-            <ListRow key={p.seat} icon={<Avatar seat={p.seat} />}
+            <ListRow key={p.seat} icon={<Avatar seat={p.seat} byName />}
               sub={p.seat === self.seat ? t('you') : undefined}
               end={<span class="row nowrap" style={{ gap: '8px' }}>
                 {p.isHost && <span class="tag">{t('host')}</span>}

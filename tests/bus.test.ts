@@ -103,6 +103,8 @@ describe('Firebase-style transport (host browser = server) over an in-memory bus
     remotes[0].send({ t: 'do', a: { type: 'setName', name: 'Annabel' } });
     await until(() => byDev(h1, 'ann').name === 'Annabel', 8000, 'rename');
     const annSeat = byDev(h1, 'ann').seat;
+    (h1.room as any).vms.set(annSeat, { mime: 'audio/webm', b64: 'QUJD' });
+    (h1 as any).saveVm(annSeat, { mime: 'audio/webm', b64: 'QUJD' });
     await sleep(150);                                    // let the snapshot be saved
     await h1.stop();
 
@@ -113,6 +115,7 @@ describe('Firebase-style transport (host browser = server) over an in-memory bus
     await until(() => h2.room.conns.has('ann') && h2.room.conns.has('bob'), 8000, 'remotes re-announced after epoch change');
     expect(h2.room.s!.players.map((p) => p.name).sort()).toEqual(['Annabel', 'Host', 'bob']);
     expect(byDev(h2, 'ann').seat).toBe(annSeat);                 // same seat after the host restart
+    expect(h2.room.vms.get(annSeat)).toEqual({ mime: 'audio/webm', b64: 'QUJD' });   // voicemails survive the restart
     expect(byDev(h2, 'host').isHost).toBe(true);
     remotes[1].send({ t: 'do', a: { type: 'setName', name: 'Roberto' } });
     await until(() => byDev(h2, 'bob').name === 'Roberto', 8000, 'still working after restart');

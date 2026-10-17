@@ -128,8 +128,13 @@ export class HostEngine {
     const s = this.snap; this.snap = null;
     try { await this.o.bus.saveSnapshot(this.o.code, await encText(this.o.key, s)); } catch { /* ignore */ }
   }
+  /** Voicemails exist only here until stored: retry until the write succeeds (bad Wi-Fi must not lose them). */
   private async saveVm(seat: number, vm: { mime: string; b64: string }) {
-    try { await this.o.bus.saveVm(this.o.code, seat, await encText(this.o.key, JSON.stringify(vm))); } catch { /* ignore */ }
+    const enc = await encText(this.o.key, JSON.stringify(vm));
+    for (let i = 0; i < 8 && !this.stopped; i++) {
+      try { await this.o.bus.saveVm(this.o.code, seat, enc); return; } catch { /* retry */ }
+      await new Promise((r) => setTimeout(r, Math.min(30000, 1000 * 2 ** i)));
+    }
   }
 
   /** The host deleted the game: flag it for every device, let the last messages drain, then erase the room. */

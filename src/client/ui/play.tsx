@@ -22,6 +22,7 @@ export function ClockBar({ v, onMenu }: { v: View; onMenu?: () => void }) {
   const lockedMine = v.myLock;
   return (
     <header class="play-head">
+      <h1 class="sr-only">{t('phase_play')}</h1>
       <div class="row nowrap between">
         <div class={`clock ${rem < 600000 ? 'hot' : ''}`} role="timer" aria-live="off">{fmtClock(rem)}</div>
         <div class="row nowrap">
@@ -321,9 +322,9 @@ export function unreadCount(v: View): number {
 
 interface MenuState { m: ChatMsg; mine: boolean; x: number; y: number }
 
-function QuoteBox({ m, v }: { m: ChatMsg; v: View }) {
+function QuoteBox({ m, v, byId }: { m: ChatMsg; v: View; byId: Map<number, ChatMsg> }) {
   if (m.replyTo == null) return null;
-  const q = chat.value.find((x) => x.id === m.replyTo);
+  const q = byId.get(m.replyTo);
   const gone = !q || q.deleted;
   const who = q && !gone ? (q.as ? charName(q.as, seatName(v, q.from)) : seatName(v, q.from)) : '';
   return (
@@ -334,7 +335,7 @@ function QuoteBox({ m, v }: { m: ChatMsg; v: View }) {
   );
 }
 
-function Bubble({ m, v, mine, first, last, onMenu }: { m: ChatMsg; v: View; mine: boolean; first: boolean; last: boolean; onMenu: (s: MenuState) => void }) {
+function Bubble({ m, v, mine, first, last, onMenu, byId }: { m: ChatMsg; v: View; mine: boolean; first: boolean; last: boolean; onMenu: (s: MenuState) => void; byId: Map<number, ChatMsg> }) {
   const timer = useRef<number | null>(null);
   const start = useRef<{ x: number; y: number } | null>(null);
   if (m.kind === 'safety') {
@@ -362,7 +363,13 @@ function Bubble({ m, v, mine, first, last, onMenu }: { m: ChatMsg; v: View; mine
         {!mine && first && <div class="sender">{sender}</div>}
         <div
           class={`bubble ${mine ? 'out' : 'in'} ${m.ooc ? 'ooc' : ''} ${m.deleted ? 'gone' : ''} ${first ? 'f' : ''} ${last ? 'l' : ''}`}
+          tabIndex={m.deleted ? undefined : 0} aria-haspopup={m.deleted ? undefined : 'menu'}
           onContextMenu={(e) => { e.preventDefault(); open(e.clientX, e.clientY); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ' || e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey)) {
+              e.preventDefault(); const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); open(r.left + r.width / 2, r.bottom);
+            }
+          }}
           onPointerDown={(e) => {
             start.current = { x: e.clientX, y: e.clientY };
             cancel();
@@ -371,7 +378,7 @@ function Bubble({ m, v, mine, first, last, onMenu }: { m: ChatMsg; v: View; mine
           onPointerMove={(e) => { const s0 = start.current; if (s0 && (Math.abs(e.clientX - s0.x) > 8 || Math.abs(e.clientY - s0.y) > 8)) cancel(); }}
           onPointerUp={cancel} onPointerCancel={cancel} onPointerLeave={cancel}
         >
-          {m.deleted ? t('msgRemoved') : <><QuoteBox m={m} v={v} />{m.text}</>}
+          {m.deleted ? t('msgRemoved') : <><QuoteBox m={m} v={v} byId={byId} />{m.text}</>}
         </div>
       </div>
     </div>
@@ -379,12 +386,29 @@ function Bubble({ m, v, mine, first, last, onMenu }: { m: ChatMsg; v: View; mine
 }
 
 function MsgMenu({ s, onClose, onReply, onPrivate }: { s: MenuState; onClose: () => void; onReply: () => void; onPrivate: () => void }) {
-  const W = 200, H = s.mine ? 100 : 100;
+  const W = 200, H = 100;
+  const box = useRef<HTMLDivElement>(null);
+  const restore = useRef(false);   // only a dismissal hands focus back to the bubble; Reply / Private move it to the composer
+  useEffect(() => {
+    const back = document.activeElement as HTMLElement | null;
+    box.current?.querySelector<HTMLElement>('button')?.focus({ preventScroll: true });
+    return () => { if (restore.current) back?.focus?.({ preventScroll: true }); };
+  }, []);
+  const dismiss = () => { restore.current = true; onClose(); };
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); dismiss(); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const items = [...(box.current?.querySelectorAll<HTMLElement>('button') ?? [])];
+      const i = items.indexOf(document.activeElement as HTMLElement);
+      items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length]?.focus();
+    }
+  };
   const left = Math.max(8, Math.min(s.x - W / 2, window.innerWidth - W - 8));
   const top = Math.max(8, Math.min(s.y - 20, window.innerHeight - H - 8));
   return (
-    <div class="ctx-back" onPointerDown={(e) => { e.preventDefault(); onClose(); }} onContextMenu={(e) => e.preventDefault()}>
-      <div class="ctx" role="menu" style={{ left: `${left}px`, top: `${top}px`, width: `${W}px` }} onPointerDown={(e) => e.stopPropagation()}>
+    <div class="ctx-back" onPointerDown={(e) => { e.preventDefault(); dismiss(); }} onContextMenu={(e) => e.preventDefault()}>
+      <div class="ctx" role="menu" ref={box} onKeyDown={onKey} style={{ left: `${left}px`, top: `${top}px`, width: `${W}px` }} onPointerDown={(e) => e.stopPropagation()}>
         <button role="menuitem" onClick={onReply}><Reply size={18} />{t('reply')}</button>
         {s.mine
           ? <button role="menuitem" class="danger" onClick={() => { send({ type: 'chatDelete', id: s.m.id }); onClose(); }}><Trash2 size={18} />{t('deleteMsg')}</button>
@@ -392,6 +416,14 @@ function MsgMenu({ s, onClose, onReply, onPrivate }: { s: MenuState; onClose: ()
       </div>
     </div>
   );
+}
+
+/** Lives in its own component so its 1 s clock re-renders three dots, not the whole thread. */
+function TypingDots({ k, onShow }: { k: string; onShow: () => void }) {
+  const now = useNow(1000);
+  const on = typingMap.value[k] > now;
+  useEffect(() => { if (on) onShow(); }, [on]);
+  return on ? <div class="typing" aria-label={t('typing')}><i /><i /><i /></div> : null;
 }
 
 function SafetySheet({ onClose }: { onClose: () => void }) {
@@ -425,8 +457,7 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
   const msgs = chat.value.filter((m) => convOf(m, me) === conv);
   const others = v.players.filter((p) => p.seat !== me);
   const lock = v.myLock;
-  const now = useNow(1000);
-  const typing = typingMap.value[conv === 'group' ? 'group' : conv] > now;
+  const byId = new Map(chat.value.map((m) => [m.id, m] as [number, ChatMsg]));
   const lastId = msgs.length ? msgs[msgs.length - 1].id : 0;
 
   // Android "back" hides the keyboard but leaves the field focused: drop focus so the full UI comes back
@@ -445,7 +476,8 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
   useEffect(() => {
     readMap.value = { ...readMap.value, [conv]: Math.max(readMap.value[conv] ?? 0, lastId) };
     const el = thread.current; if (el) el.scrollTop = el.scrollHeight;
-  }, [conv, lastId, typing]);
+  }, [conv, lastId]);
+  const toBottom = () => { const el = thread.current; if (el) el.scrollTop = el.scrollHeight; };
 
   const submit = () => {
     const tt = text.trim(); if (!tt) return;
@@ -476,9 +508,9 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
           const key = grp(m);
           const first = !key || grp(msgs[i - 1]) !== key;
           const last = !key || grp(msgs[i + 1]) !== key;
-          return <Bubble key={m.id} m={m} v={v} mine={m.from === me && m.kind === 'msg'} first={first} last={last} onMenu={setMenu} />;
+          return <Bubble key={m.id} m={m} v={v} mine={m.from === me && m.kind === 'msg'} first={first} last={last} onMenu={setMenu} byId={byId} />;
         })}
-        {typing && <div class="typing" aria-label={t('typing')}><i /><i /><i /></div>}
+        <TypingDots k={conv} onShow={toBottom} />
       </div>
       {lock && <div class="lock-note">{t('lockedHint')}</div>}
       {replyTo && (

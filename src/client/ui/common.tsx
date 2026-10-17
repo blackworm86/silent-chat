@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { X } from 'lucide-preact';
 import { lang, charName, fmtClock } from '../content';
@@ -101,14 +101,28 @@ export function Countdown({ until }: { until: number }) {
 
 /** Bottom sheet. Closes on backdrop tap, the close button, or Escape. */
 export function Modal(p: { title: string; onClose: () => void; children: ComponentChildren }) {
+  const box = useRef<HTMLDivElement>(null);
+  const close = useRef(p.onClose); close.current = p.onClose;
   useEffect(() => {
-    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') p.onClose(); };
+    const back = document.activeElement as HTMLElement | null;
+    const el = box.current;
+    // focus the first field if the sheet has one (autoFocus), else the sheet itself
+    if (el && !el.contains(document.activeElement)) (el.querySelector<HTMLElement>('[autofocus]') ?? el).focus({ preventScroll: true });
+    const k = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { close.current(); return; }
+      if (e.key !== 'Tab' || !el) return;
+      const f = [...el.querySelectorAll<HTMLElement>('button, a[href], input, textarea, select, [tabindex]:not([tabindex="-1"])')].filter((x) => !(x as HTMLButtonElement).disabled);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === el)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
     window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
-  }, [p.onClose]);
+    return () => { window.removeEventListener('keydown', k); back?.focus?.({ preventScroll: true }); };
+  }, []);
   return (
     <div class="sheet-back" onClick={p.onClose}>
-      <div class="sheet" role="dialog" aria-modal="true" aria-label={p.title} onClick={(e) => e.stopPropagation()}>
+      <div class="sheet" ref={box} tabIndex={-1} role="dialog" aria-modal="true" aria-label={p.title} onClick={(e) => e.stopPropagation()}>
         <div class="sheet-head"><h2>{p.title}</h2><button class="icon-btn" aria-label={t('close')} onClick={p.onClose}><X size={22} /></button></div>
         <div class="sheet-body">{p.children}</div>
       </div>

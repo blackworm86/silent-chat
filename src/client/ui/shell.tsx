@@ -118,7 +118,7 @@ function Shell({ v }: { v: View }) {
       {v.phase === 'play' ? <Screen v={v} onMenu={() => setSheet('menu')} /> : (
         <>
           <header class="topbar">
-            <div><div class="title">{t(('phase_' + v.phase) as keyof typeof dict.en)}</div><div class="sub num">{t('room')} {v.code}</div></div>
+            <div><h1 class="title">{t(('phase_' + v.phase) as keyof typeof dict.en)}</h1><div class="sub num">{t('room')} {v.code}</div></div>
             <div class="topbar-end">
               {showX && <button class="xbtn" aria-label={t('xCard')} onClick={() => send({ type: 'safety', kind: 'x', text: '' })}>X</button>}
               <button class="icon-btn" aria-label={t('menu')} onClick={() => setSheet('menu')}><Menu size={22} /></button>

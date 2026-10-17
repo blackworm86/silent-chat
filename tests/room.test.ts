@@ -204,6 +204,23 @@ describe('play', () => {
   });
 });
 
+describe('host recovery clock', () => {
+  it('sets the remaining time, running or paused, host only', () => {
+    const h = new Harness();
+    setupToReady(h, 4);
+    h.do('p0', { type: 'startGame', source: 'manual' });
+    h.do('p1', { type: 'setClock', remainingMs: 47 * 60000 });
+    expect(h.err('p1')).toBeTruthy();
+    h.do('p0', { type: 'setClock', remainingMs: 47 * 60000 + 30000 });
+    const c = h.v('p1').clock;
+    expect(c.running).toBe(true);
+    expect(c.lengthMs - ((h as any).t - c.startedAt)).toBe(47 * 60000 + 30000);
+    h.do('p0', { type: 'pauseClock' });
+    h.do('p0', { type: 'setClock', remainingMs: 20 * 60000 });
+    expect(h.v('p1').clock.pausedRemainingMs).toBe(20 * 60000);
+  });
+});
+
 describe('lines and veils during setup', () => {
   it('can be removed in the safety phase by their author or the host, not by others, not later', () => {
     const h = new Harness();

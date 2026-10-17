@@ -469,6 +469,17 @@ export class Room {
         if (c.running) c.startedAt -= ms; else if (c.pausedRemainingMs !== null) c.pausedRemainingMs = Math.max(0, c.pausedRemainingMs - ms);
         return;
       }
+      case 'setClock': {
+        // recovery: the host puts the clock back on the minute the group had reached (manual clock from now on)
+        this.needHost(ctx);
+        const c = s.clock;
+        const rem = Math.max(0, Math.min(c.lengthMs, Math.round(Number(a.remainingMs))));
+        if (!isFinite(rem)) this.err(ctx, 'bad_value');
+        c.source = 'manual';
+        if (c.running) c.startedAt = this.io.now() - (c.lengthMs - rem); else c.pausedRemainingMs = rem;
+        this.tick();
+        return;
+      }
       case 'setClockSource': {
         if (!(ctx.p?.isHost || this.isSound(ctx.deviceId))) this.err(ctx, 'not_allowed');
         s.clock.source = a.source === 'video' ? 'video' : 'manual'; return;

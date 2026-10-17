@@ -561,9 +561,19 @@ export function NotesTab({ v }: { v: View }) {
 // =====================================================================
 // Host panel
 // =====================================================================
+/** "45" -> 45:00, "45:30" -> 45:30 (time still on the clock), in ms; null if not a valid time. */
+function parseAt(s: string): number | null {
+  const m = /^(\d{1,2})(?::(\d{1,2}))?$/.exec(s.trim());
+  if (!m) return null;
+  const min = Number(m[1]), sec = Number(m[2] ?? 0);
+  if (sec > 59 || min * 60 + sec > 90 * 60) return null;
+  return (min * 60 + sec) * 1000;
+}
+
 export function HostPanel({ v, onClose }: { v: View; onClose: () => void }) {
   const miss = v.hostExtra?.missed ?? [];
   const [confirmEnd, setConfirmEnd] = useState(false);
+  const [at, setAt] = useState('');
   if (confirmEnd) return <ConfirmSheet title={t('endGame')} body={t('confirmEnd')} confirm={t('endGame')} danger onConfirm={() => { send({ type: 'endGame' }); onClose(); }} onClose={() => setConfirmEnd(false)} />;
   return (
     <Modal title={t('hostPanel')} onClose={onClose}>
@@ -575,6 +585,12 @@ export function HostPanel({ v, onClose }: { v: View; onClose: () => void }) {
           <Btn kind="ghost" small full={false} onClick={() => send({ type: 'nudgeClock', ms: -1000 })}>−1s</Btn>
           <Btn kind="ghost" small full={false} onClick={() => send({ type: 'nudgeClock', ms: 1000 })}>+1s</Btn>
         </div>
+        <div class="row nowrap">
+          <input class="input num" inputMode="numeric" placeholder="mm:ss" aria-label={t('setClockAt')} value={at} maxLength={5}
+            onInput={(e) => setAt((e.target as HTMLInputElement).value.replace(/[^\d:]/g, ''))} />
+          <Btn kind="ghost" small full={false} disabled={parseAt(at) === null} onClick={() => { send({ type: 'setClock', remainingMs: parseAt(at)! }); setAt(''); }}>{t('setClockBtn')}</Btn>
+        </div>
+        <Muted small>{t('setClockHint')}</Muted>
         <Muted small>{t('clockSource')}: {v.clock.source === 'video' ? t('srcVideo') : t('srcManual')}</Muted>
         {v.clock.source === 'video' && <TextLink onClick={() => { send({ type: 'setClockSource', source: 'manual' }); send({ type: 'resumeClock' }); }}>{t('switchManual')}</TextLink>}
       </Section>

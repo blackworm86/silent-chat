@@ -204,6 +204,28 @@ describe('play', () => {
   });
 });
 
+describe('lines and veils during setup', () => {
+  it('can be removed in the safety phase by their author or the host, not by others, not later', () => {
+    const h = new Harness();
+    h.join('p0', { create: true, name: 'Host' }); h.join('p1'); h.join('p2');
+    h.do('p0', { type: 'next' });
+    h.do('p1', { type: 'addSafety', kind: 'line', text: 'spiders' });
+    h.do('p1', { type: 'addSafety', kind: 'veil', text: 'gore' });
+    const [a, b] = h.v('p0').safety.items;
+    h.do('p2', { type: 'removeSafety', id: a.id });
+    expect(h.err('p2')).toBe('not_author');
+    h.do('p1', { type: 'removeSafety', id: a.id });
+    h.do('p0', { type: 'removeSafety', id: b.id });
+    expect(h.v('p2').safety.items).toHaveLength(0);
+    h.do('p1', { type: 'addSafety', kind: 'line', text: 'dogs' });
+    ['p0', 'p1', 'p2'].forEach((i) => h.do(i, { type: 'consent' }));
+    h.do('p0', { type: 'next' });
+    h.do('p1', { type: 'removeSafety', id: h.v('p1').safety.items[0].id });
+    expect(h.err('p1')).toBe('not_now');
+    expect(h.v('p1').safety.items).toHaveLength(1);
+  });
+});
+
 describe('Chat + Game Aids (physical cards)', () => {
   it('uses a deal plan, registrations and manual coin/pick', () => {
     const h = new Harness();

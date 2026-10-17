@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import qrcode from 'qrcode-generator';
-import { Share2, KeyRound, SlidersHorizontal, ChevronRight, Pencil, Check, Tablet, Plus, Mic, Square, Play, ShieldAlert, DoorOpen, RotateCcw } from 'lucide-preact';
+import { Share2, KeyRound, SlidersHorizontal, ChevronRight, Pencil, Check, Tablet, Plus, Mic, Square, Play, ShieldAlert, DoorOpen, RotateCcw, X } from 'lucide-preact';
 import { send } from '../net';
 import { C, tx, character, drive, posterUrl, dayWord, inviteUrl } from '../content';
 import { t, Btn, Panel, Label, Muted, Avatar, seatName, UnofficialTag, showUnofficial, ActionBar, Waiting, TextLink, Section, ListRow, Modal, Switch } from './common';
@@ -191,7 +191,10 @@ export function Safety({ v }: { v: View }) {
       <Section title={t('linesAndVeils')}>
         <Muted small>{t('linesVeilsHint')}</Muted>
         {v.safety.items.length > 0 && (
-          <div class="list">{v.safety.items.map((i) => <ListRow key={i.id} icon={<span class={`tag ${i.kind}`}>{i.kind === 'line' ? t('line') : t('veil')}</span>}>{i.text}</ListRow>)}</div>
+          <div class="list">{v.safety.items.map((i) => (
+            <ListRow key={i.id} icon={<span class={`tag ${i.kind}`}>{i.kind === 'line' ? t('line') : t('veil')}</span>}
+              end={(i.by === self.seat || v.me.isHost) && <button class="icon-btn" aria-label={`${t('remove')}: ${i.text}`} onClick={() => send({ type: 'removeSafety', id: i.id })}><X size={18} /></button>}>{i.text}</ListRow>
+          ))}</div>
         )}
         <div class="chips strip">
           {(['sugGore', 'sugConsent', 'sugBlame'] as const).filter((k) => !v.safety.items.some((i) => i.text === t(k))).map((k) => (

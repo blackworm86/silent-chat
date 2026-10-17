@@ -383,6 +383,15 @@ export class Room {
       // ---- safety ----
       case 'consent': this.needPlayer(ctx).consent = true; return;
       case 'addSafety': { const p = this.needPlayer(ctx); this.addSafety(p, a.kind === 'veil' ? 'veil' : 'line', clean(a.text, 120)); return; }
+      case 'removeSafety': {
+        // only while the group is still agreeing on them (setup), by whoever added it or the host
+        const p = this.needPlayer(ctx);
+        if (s.phase !== 'safety') this.err(ctx, 'not_now');
+        const i = s.safety.items.findIndex((x) => x.id === Number(a.id));
+        if (i < 0) return;
+        if (s.safety.items[i].by !== p.seat && !p.isHost) this.err(ctx, 'not_author');
+        s.safety.items.splice(i, 1); return;
+      }
 
       // ---- intro / characters / drives ----
       case 'pickPoster': {

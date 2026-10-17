@@ -116,7 +116,12 @@ export class HostEngine {
   private queueSave(snap: string) {
     this.snap = snap;
     if (this.saveTimer) return;
-    this.saveTimer = setTimeout(() => { this.saveTimer = null; void this.saveNow(); }, this.o.saveMs ?? 3000);
+    this.saveTimer = setTimeout(() => { this.saveTimer = null; void this.saveNow(); }, this.o.saveMs ?? 1000);
+  }
+  /** Write the pending snapshot right away (page being hidden or reloaded). */
+  saveSoon() {
+    if (this.saveTimer) { clearTimeout(this.saveTimer); this.saveTimer = null; }
+    void this.saveNow();
   }
   private async saveNow() {
     if (!this.snap) return;

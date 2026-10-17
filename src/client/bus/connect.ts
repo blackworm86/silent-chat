@@ -41,7 +41,17 @@ export async function connectBus(bus: Bus, p: BusParams): Promise<Wire | null> {
     await engine.start(meta ? 'resume' : 'create');
     store.set('aim.host.' + p.code, p.deviceId);
     engine.openLocal({ ...hello, create: true });
-    return { send: (m) => engine.receiveLocal(m), close: () => { void engine.stop(); } };
+    // a reload or a phone locking must not lose the last moves: save immediately when the page goes away
+    const flush = () => engine.saveSoon();
+    const onVis = () => { if (document.visibilityState === 'hidden') flush(); };
+    if (typeof window !== 'undefined') { window.addEventListener('pagehide', flush); document.addEventListener('visibilitychange', onVis); }
+    return {
+      send: (m) => engine.receiveLocal(m),
+      close: () => {
+        if (typeof window !== 'undefined') { window.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', onVis); }
+        void engine.stop();
+      }
+    };
   }
   if (!meta) { p.onFatal('no_room'); return null; }
   if (meta.closed) { p.onFatal('deleted'); return null; }

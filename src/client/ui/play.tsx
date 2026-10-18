@@ -6,7 +6,7 @@ import {
 } from 'lucide-preact';
 import { view, send, chat, typingMap, sendTyping, toasts, dismissToast, errors, dismissError, alertDevice } from '../net';
 import { C, tx, clueCard, clueVariants, cardName, searchText, charName, fmtClock, dayWord } from '../content';
-import { t, Btn, Panel, Label, Muted, Avatar, seatName, Countdown, useRemaining, useNow, Modal, useLocalState, UnofficialTag, showUnofficial, Section, ListRow, ConfirmSheet, TextLink } from './common';
+import { t, Btn, Panel, Label, Muted, Avatar, seatName, Countdown, useRemaining, useNow, Modal, useLocalState, UnofficialTag, showUnofficial, Section, ListRow, ConfirmSheet, TextLink, Fit } from './common';
 import { soundSheet } from './sound';
 import { demoActive, demoSheet } from '../demo';
 import { DealPlan } from './setup';
@@ -301,13 +301,35 @@ function CardsTab({ v }: { v: View }) {
   // newest first: a card waiting to be flipped, then revealed cards from the most recent, then the ones still to come
   const rank = (h: HandView) => (h.status === 'unlocked' ? 0 : h.status === 'flipped' ? 1 : 2);
   const hands = [...v.hands].sort((a, b) => rank(a) - rank(b) || (rank(a) === 2 ? b.ts - a.ts : a.ts - b.ts));
+  const [view_, setView] = useState<'clues' | 'search'>('clues');   // clues and the search deck each get the whole screen
+  if (view_ === 'search') return <><CardsSwitch v={v} at={view_} set={setView} /><SearchPanel v={v} /></>;
   return (
     <>
+      <CardsSwitch v={v} at={view_} set={setView} />
       {hands.length === 0 && <Muted>{t('noCards')}</Muted>}
-      {hands.map((h) => <ClueCardView key={h.ts} hand={h} v={v} />)}
-      <SearchPanel v={v} />
+      {/* keep the list short: only the newest revealed card is open, older ones fold to one line, upcoming ones share a line */}
+      {hands.filter((h) => h.status !== 'locked').map((h, i, arr) => {
+        const older = h.status === 'flipped' && arr.findIndex((x) => x.status === 'flipped') !== i;
+        return older
+          ? <details class="card-fold" key={h.ts}><summary><b class="num">{h.ts}:00</b><span>{t('clueN', { n: h.ts })}</span></summary><ClueCardView hand={h} v={v} /></details>
+          : <ClueCardView key={h.ts} hand={h} v={v} />;
+      })}
+      {hands.some((h) => h.status === 'locked') && (
+        <div class="panel locked row nowrap between">
+          <span class="row nowrap"><Lock size={18} class="faint" /><b>{t('upcomingClues')}</b></span>
+          <span class="num faint">{hands.filter((h) => h.status === 'locked').map((h) => `${h.ts}:00`).join(' · ')}</span>
+        </div>
+      )}
       {v.settings.sources.clues === 'physical' && v.plan && <DealPlan v={v} />}
     </>
+  );
+}
+function CardsSwitch({ v, at, set }: { v: View; at: 'clues' | 'search'; set: (x: 'clues' | 'search') => void }) {
+  return (
+    <div class="seg small">
+      <button class={at === 'clues' ? 'on' : ''} onClick={() => set('clues')}>{t('tabCards')}</button>
+      <button class={at === 'search' ? 'on' : ''} onClick={() => set('search')}>{t('searchDeck')}{v.mySearch.length ? ` · ${v.mySearch.length}` : ''}</button>
+    </div>
   );
 }
 
@@ -615,16 +637,23 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
 export function NotesTab({ v }: { v: View }) {
   const rec = C().characterRecord;
   const [notes, setNotes] = useLocalState<Record<string, string>>('aim.notes.' + v.code, {});
+  const [grp, setGrp] = useState<'c' | 'l' | 's'>('c');   // one group at a time: the list fits the screen
   const fld = (k: string, label: string) => (
-    <label class="note-field" key={k}><span>{label}</span><textarea class="input" rows={2} value={notes[k] ?? ''} onInput={(e) => setNotes({ ...notes, [k]: (e.target as HTMLTextAreaElement).value })} /></label>
+    <label class="note-line" key={k}><span>{label}</span><input class="input" value={notes[k] ?? ''} onInput={(e) => setNotes({ ...notes, [k]: (e.target as HTMLInputElement).value })} /></label>
   );
   return (
-    <div class="stack loose">
-      {fld('secret', tx(rec.secretLabel).replace(':', ''))}
-      <Section title={t('characters')}>{C().characters.map((c: any) => fld('c_' + c.id, c.name))}</Section>
-      <Section title={t('locations')}>{C().locations.map((l: any) => fld('l_' + l.id, tx(l.name)))}</Section>
-      <Section title={t('suspects')}>{C().suspects.map((s: any) => fld('s_' + s.id, s.name))}</Section>
-      <Muted small>{t('notesPrivate')}</Muted>
+    <div class="stack">
+      <label class="note-field"><span>{tx(rec.secretLabel).replace(':', '')}</span><textarea class="input" rows={2} value={notes.secret ?? ''} onInput={(e) => setNotes({ ...notes, secret: (e.target as HTMLTextAreaElement).value })} /></label>
+      <div class="seg small">
+        <button class={grp === 'c' ? 'on' : ''} onClick={() => setGrp('c')}>{t('characters')}</button>
+        <button class={grp === 'l' ? 'on' : ''} onClick={() => setGrp('l')}>{t('locations')}</button>
+        <button class={grp === 's' ? 'on' : ''} onClick={() => setGrp('s')}>{t('suspects')}</button>
+      </div>
+      <div class="stack tight">
+        {grp === 'c' && C().characters.map((c: any) => fld('c_' + c.id, c.name))}
+        {grp === 'l' && C().locations.map((l: any) => fld('l_' + l.id, tx(l.name)))}
+        {grp === 's' && C().suspects.map((x: any) => fld('s_' + x.id, x.name))}
+      </div>
     </div>
   );
 }
@@ -776,9 +805,10 @@ export function PlayScreen({ v, onMenu }: { v: View; onMenu?: () => void }) {
       <ClockBar v={v} onMenu={onMenu} onSafety={() => setSafety(true)} />
       <div class="play-body">
         {tab === 'chat' && chatApp && <ChatTab v={v} />}
-        {tab === 'cards' && <div class="scroll"><CardsTab v={v} /></div>}
-        {tab === 'table' && <div class="scroll"><TableView v={v} /></div>}
-        {tab === 'notes' && <div class="scroll"><NotesTab v={v} /></div>}
+        {/* no scrolling: each tab is fitted to the room it has (the chat thread is the one list that scrolls, like any messenger) */}
+        {tab === 'cards' && <div class="scroll fitted"><Fit key="cards"><CardsTab v={v} /></Fit></div>}
+        {tab === 'table' && <div class="scroll fitted"><Fit key="table"><TableView v={v} /></Fit></div>}
+        {tab === 'notes' && <div class="scroll fitted"><Fit key="notes"><NotesTab v={v} /></Fit></div>}
         {/* the player itself lives in the app shell (SoundDock) so it survives phase changes; this tab only brings it into view */}
         {tab === 'sound' && <div class="scroll"><Muted>{t('soundHere')}</Muted></div>}
       </div>

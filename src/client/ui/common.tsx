@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { createPortal } from 'preact/compat';
 import type { ComponentChildren } from 'preact';
 import { X } from 'lucide-preact';
 import { lang, charName, fmtClock } from '../content';
@@ -47,14 +48,59 @@ export function Switch(p: { checked: boolean; disabled?: boolean; onChange: (v: 
   );
 }
 
-/** Fixed bottom bar for the screen's one primary action (thumb zone). */
+/**
+ * Fixed bottom bar for the screen's one primary action (thumb zone). It lives outside the screen's <Fit> (a portal),
+ * so fitting never shrinks the buttons, and it publishes its height so the screen above knows how much room is left.
+ */
 export function ActionBar(p: { children: ComponentChildren; status?: ComponentChildren }) {
-  return (
-    <div class="actionbar"><div class="actionbar-in">
+  const el = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    const set = () => root.style.setProperty('--ab-h', `${el.current?.offsetHeight ?? 0}px`);
+    set();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(set) : null;
+    if (el.current) ro?.observe(el.current);
+    return () => { ro?.disconnect(); root.style.removeProperty('--ab-h'); };
+  }, []);
+  return createPortal(
+    <div class="actionbar" ref={el}><div class="actionbar-in">
       {p.status !== undefined && <div class="status" aria-live="polite">{p.status}</div>}
       {p.children}
-    </div></div>
+    </div></div>,
+    document.body
   );
+}
+
+/**
+ * Keeps its content on one screen: if it is taller than the room it has, it is zoomed down evenly (text, headings and
+ * controls together) to a readable minimum; only past that minimum does it scroll, inside itself, never the page.
+ */
+const FIT_MIN = 0.74;
+export function Fit({ children }: { children: ComponentChildren }) {
+  const box = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const b = box.current, i = inner.current;
+    if (!b || !i) return;
+    let busy = false;
+    const fit = () => {
+      if (busy) return; busy = true;
+      (i.style as any).zoom = '1';
+      const need = i.scrollHeight, have = b.clientHeight;
+      const z = need > have && have > 0 ? Math.max(FIT_MIN, have / need) : 1;
+      (i.style as any).zoom = String(z);
+      b.classList.toggle('fit-scroll', need * z > have + 2);
+      busy = false;
+    };
+    fit();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => requestAnimationFrame(fit));
+    ro.observe(b);
+    const mo = new MutationObserver(() => requestAnimationFrame(fit));
+    mo.observe(i, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['open', 'class'] });
+    return () => { ro.disconnect(); mo.disconnect(); };
+  }, []);
+  return <div class="fit" ref={box}><div class="fit-in" ref={inner}>{children}</div></div>;
 }
 export const Waiting = (p: { children: ComponentChildren }) => <div class="waiting"><span class="pulse" aria-hidden="true" />{p.children}</div>;
 
@@ -120,13 +166,14 @@ export function Modal(p: { title: string; onClose: () => void; children: Compone
     window.addEventListener('keydown', k);
     return () => { window.removeEventListener('keydown', k); back?.focus?.({ preventScroll: true }); };
   }, []);
-  return (
+  return createPortal(
     <div class="sheet-back" onClick={p.onClose}>
       <div class="sheet" ref={box} tabIndex={-1} role="dialog" aria-modal="true" aria-label={p.title} onClick={(e) => e.stopPropagation()}>
         <div class="sheet-head"><h2>{p.title}</h2><button class="icon-btn" aria-label={t('close')} onClick={p.onClose}><X size={22} /></button></div>
         <div class="sheet-body">{p.children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

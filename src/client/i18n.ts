@@ -1,5 +1,7 @@
 // UI strings (Italian / English). Game CARD text is NOT here: it lives in the encrypted content pack.
 const en = {
+  "upcomingClues": "Coming up",
+  "relationsYours": "Your lines",
   "soundEnable": "Tap to turn the sound on",
   "soundNoFile": "No soundtrack file on this device: choose one in the menu, or switch to YouTube.",
   "soundFileHint": "The file stays on this tablet/PC, saved in the browser: it is never uploaded. It must start at 90:00, or set the start offset in the game settings.",
@@ -396,6 +398,8 @@ const en = {
 
 export type Key = keyof typeof en;
 const it: Record<Key, string> = {
+  "upcomingClues": "In arrivo",
+  "relationsYours": "Le tue frasi",
   "soundEnable": "Tocca per attivare l'audio",
   "soundNoFile": "Nessun file della colonna sonora su questo dispositivo: sceglilo dal menu o passa a YouTube.",
   "soundFileHint": "Il file resta su questo tablet/PC, salvato nel browser: non viene mai caricato online. Deve partire dai 90:00, oppure imposta lo scarto d'inizio nelle impostazioni.",

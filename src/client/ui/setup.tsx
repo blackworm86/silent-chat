@@ -219,7 +219,7 @@ export function Intro({ v }: { v: View }) {
         <div class="prose">{intro.body.map((b: any, i: number) => <p key={i}>{tx(b)}</p>)}</div>
         <p class="accent"><b>{tx(intro.instruction)}</b></p>
       </article>
-      <Section title={t('missingPoster')}>
+      <Section>
         <div class="poster-row">
           {v.posterIndex !== null && <button class="poster-thumb" aria-label={t('missingPoster')} onClick={() => setBig(true)}><Poster index={v.posterIndex} /></button>}
           <Muted small>{physical && v.posterIndex === null ? t('pickPosterHint') : t('dayBanner', { day: dayWord(v.settings.dayOfWeek) })}</Muted>
@@ -398,10 +398,17 @@ export function Relations({ v }: { v: View }) {
   const d = v.myDriveId ? drive(v.myDriveId) : null;
   const others = v.players.filter((p) => p.seat !== self.seat);
   const done = (p: View['players'][number]) => p.relations[0] !== null && p.relations[1] !== null;
+  const [about, setAbout] = useState(false);     // two views instead of one long page: your lines / what others said about you
   return (
     <>
-      <Muted>{t('relationsHint')}</Muted>
-      {d && ([0, 1] as const).map((l) => (
+      {v.relationsToMe.length > 0 && (
+        <div class="seg">
+          <button class={!about ? 'on' : ''} onClick={() => setAbout(false)}>{t('relationsYours')}</button>
+          <button class={about ? 'on' : ''} onClick={() => setAbout(true)}>{t('relationsToYou')} · {v.relationsToMe.length}</button>
+        </div>
+      )}
+      {!about && <Muted small>{t('relationsHint')}</Muted>}
+      {!about && d && ([0, 1] as const).map((l) => (
         <article class="gcard" key={l}>
           <p class="rel">“{tx(d.relationships[l])}”</p>
           <div class="chips">
@@ -409,12 +416,8 @@ export function Relations({ v }: { v: View }) {
           </div>
         </article>
       ))}
-      {!d && <Muted>{t('pickDriveHint')}</Muted>}
-      {v.relationsToMe.length > 0 && (
-        <Section title={t('relationsToYou')}>
-          {v.relationsToMe.map((r, i) => <p key={i}><b>{seatName(v, r.from)}</b> <span class="rel">“{tx(drive(r.driveId)!.relationships[r.line])}”</span></p>)}
-        </Section>
-      )}
+      {!about && !d && <Muted>{t('pickDriveHint')}</Muted>}
+      {about && v.relationsToMe.map((r, i) => <article class="gcard" key={i}><b>{seatName(v, r.from)}</b><p class="rel">“{tx(drive(r.driveId)!.relationships[r.line])}”</p></article>)}
       <PhaseBar v={v} blocked={!v.players.every(done)} status={`${count(v, done)} ${t('done')}`} />
     </>
   );
@@ -516,13 +519,23 @@ export function Deal({ v }: { v: View }) {
 }
 
 // ---------- rules ----------
-export function QuickGuide({ v }: { v: View }) {
+export function QuickGuide({ v, paged }: { v: View; paged?: boolean }) {
   const g = C().quickGuide;
   const day = dayWord(v.settings.dayOfWeek);
+  const [page, setPage] = useState(0);
+  // on the Rules screen the guide comes in two halves, so it fits a phone screen without scrolling
+  const half = Math.ceil(g.items.length / 2);
+  const items = g.items.map((it: any, i: number) => ({ it, i })).filter(({ i }: { i: number }) => !paged || (page === 0 ? i < half : i >= half));
   return (
     <section class="section">
       <div class="row between"><Label>{tx(g.title)}</Label>{showUnofficial() && <UnofficialTag />}</div>
-      <ol class="guide">{g.items.map((it: any, i: number) => <li key={i}>{tx(it).replaceAll('{day}', day)}</li>)}</ol>
+      {paged && g.items.length > 4 && (
+        <div class="seg small">
+          <button class={page === 0 ? 'on' : ''} onClick={() => setPage(0)}>1–{half}</button>
+          <button class={page === 1 ? 'on' : ''} onClick={() => setPage(1)}>{half + 1}–{g.items.length}</button>
+        </div>
+      )}
+      <ol class="guide" start={paged && page === 1 ? half + 1 : 1}>{items.map(({ it, i }: { it: any; i: number }) => <li key={i}>{tx(it).replaceAll('{day}', day)}</li>)}</ol>
     </section>
   );
 }
@@ -530,7 +543,7 @@ export function Rules({ v }: { v: View }) {
   const self = me(v);
   return (
     <>
-      <QuickGuide v={v} />
+      <QuickGuide v={v} paged />
       <PhaseBar v={v} blocked={!v.players.every((p) => p.ready)} status={`${count(v, (p) => p.ready)} ${t('ready')}`}
         personal={!self.ready ? <Btn onClick={() => send({ type: 'ready', value: true })}>{t('imReady')}</Btn>
           : !v.me.isHost ? <><Waiting>{t('waitHost')}</Waiting><TextLink onClick={() => send({ type: 'ready', value: false })}>{t('change')}</TextLink></> : undefined} />

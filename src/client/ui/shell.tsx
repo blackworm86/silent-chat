@@ -3,7 +3,7 @@ import { BookOpen, NotebookPen, ShieldAlert, SlidersHorizontal, Undo2, LogOut, T
 import { view, send, connect, disconnect, fatal, conn, hostOffline, deleteSession } from '../net';
 import { isFirebase } from '../config';
 import { lang, setLang, forget } from '../content';
-import { t, Btn, Muted, Modal, ListRow, Section, ConfirmSheet, TextLink, Waiting } from './common';
+import { t, Btn, Muted, Modal, ListRow, Section, ConfirmSheet, TextLink, Waiting, Fit } from './common';
 import { Lobby, Safety, Intro, Characters, Drives, Turns, Relations, Voicemail, Deal, Rules, Ready, QuickGuide } from './setup';
 import { PlayScreen, NotesTab, HostPanel, LightsOut, Toasts } from './play';
 import { Final, Playback, Debrief, Done } from './end';
@@ -113,7 +113,7 @@ export function Shell({ v }: { v: View }) {
     location.hash = '#/';
   };
   return (
-    <div class="page">
+    <div class={`page ${v.phase === 'play' ? '' : 'phase-page'}`}>
       <LightsOut v={v} />
       <Toasts />
       {v.phase === 'play' ? <Screen v={v} onMenu={() => setSheet('menu')} /> : (
@@ -128,7 +128,8 @@ export function Shell({ v }: { v: View }) {
             </div>
           </header>
           {isFirebase() && hostOffline.value && <div class="hostnote warn"><WifiOff size={18} style={{ flex: 'none', marginTop: '1px' }} /><span>{t('hostOffline')}</span></div>}
-          <main class={`main ${noBar ? 'no-bar' : ''} ${dock === 'top' ? 'with-dock' : ''}`}><Screen v={v} /></main>
+          {/* every phone screen is exactly one screen tall: long content is fitted, never scrolled */}
+          <main class={`main fixed-screen ${noBar ? 'no-bar' : ''} ${dock === 'top' ? 'with-dock' : ''}`}><Fit><Screen v={v} /></Fit></main>
         </>
       )}
       {dock && <SoundDock mode={dock} />}

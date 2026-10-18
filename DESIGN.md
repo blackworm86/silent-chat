@@ -248,4 +248,4 @@ Generously rounded, never sharp. Radii: 10 px (small controls), 14 px (buttons, 
 
 ---
 
-*Extracted from `src/client/styles.css`, the components in `src/client/ui/` and rendered screens on a 360×740 and 390×844 phone. The Creative North Star, the named rules and the Do's and Don'ts are inferred from that code and from the owner's feedback, not confirmed in an interview. The `.impeccable/design.json` sidecar was not generated.*
+*Extracted from `src/client/styles.css`, the components in `src/client/ui/` and rendered screens on a 360×740 and 390×844 phone. The Creative North Star, the named rules and the Do's and Don'ts are inferred from that code and from the owner's feedback, not confirmed in an interview. The `.impeccable/design.json` sidecar was generated on refresh.*

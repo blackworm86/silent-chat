@@ -1,0 +1,322 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-18T10:37:40.365695Z",
+  "title": "Design System: Silent Chat",
+  "extensions": {
+    "colorMeta": {
+      "ink-0": {
+        "role": "neutral",
+        "displayName": "Night Ink",
+        "canonical": "oklch(0.145 0.012 255)",
+        "tonalRamp": [
+          "oklch(0.15 0.012 255)",
+          "oklch(0.25 0.012 255)",
+          "oklch(0.35 0.012 255)",
+          "oklch(0.45 0.012 255)",
+          "oklch(0.55 0.012 255)",
+          "oklch(0.65 0.012 255)",
+          "oklch(0.8 0.012 255)",
+          "oklch(0.95 0.012 255)"
+        ]
+      },
+      "ink-1": {
+        "role": "neutral",
+        "displayName": "Panel Ink",
+        "canonical": "oklch(0.185 0.014 255)",
+        "tonalRamp": [
+          "oklch(0.15 0.014 255)",
+          "oklch(0.25 0.014 255)",
+          "oklch(0.35 0.014 255)",
+          "oklch(0.45 0.014 255)",
+          "oklch(0.55 0.014 255)",
+          "oklch(0.65 0.014 255)",
+          "oklch(0.8 0.014 255)",
+          "oklch(0.95 0.014 255)"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Control Ink",
+        "canonical": "oklch(0.225 0.016 255)",
+        "tonalRamp": [
+          "oklch(0.15 0.016 255)",
+          "oklch(0.25 0.016 255)",
+          "oklch(0.35 0.016 255)",
+          "oklch(0.45 0.016 255)",
+          "oklch(0.55 0.016 255)",
+          "oklch(0.65 0.016 255)",
+          "oklch(0.8 0.016 255)",
+          "oklch(0.95 0.016 255)"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Quiet Ink",
+        "canonical": "oklch(0.285 0.018 255)",
+        "tonalRamp": [
+          "oklch(0.15 0.018 255)",
+          "oklch(0.25 0.018 255)",
+          "oklch(0.35 0.018 255)",
+          "oklch(0.45 0.018 255)",
+          "oklch(0.55 0.018 255)",
+          "oklch(0.65 0.018 255)",
+          "oklch(0.8 0.018 255)",
+          "oklch(0.95 0.018 255)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Moon Text",
+        "canonical": "oklch(0.955 0.008 255)",
+        "tonalRamp": [
+          "oklch(0.15 0.008 255)",
+          "oklch(0.25 0.008 255)",
+          "oklch(0.35 0.008 255)",
+          "oklch(0.45 0.008 255)",
+          "oklch(0.55 0.008 255)",
+          "oklch(0.65 0.008 255)",
+          "oklch(0.8 0.008 255)",
+          "oklch(0.95 0.008 255)"
+        ]
+      },
+      "lamp": {
+        "role": "primary",
+        "displayName": "Lamp Gold",
+        "canonical": "oklch(0.84 0.135 78)",
+        "tonalRamp": [
+          "oklch(0.15 0.135 78)",
+          "oklch(0.25 0.135 78)",
+          "oklch(0.35 0.135 78)",
+          "oklch(0.45 0.135 78)",
+          "oklch(0.55 0.135 78)",
+          "oklch(0.65 0.135 78)",
+          "oklch(0.8 0.135 78)",
+          "oklch(0.95 0.135 78)"
+        ]
+      },
+      "mine": {
+        "role": "secondary",
+        "displayName": "Message Blue",
+        "canonical": "oklch(0.52 0.15 258)",
+        "tonalRamp": [
+          "oklch(0.15 0.15 258)",
+          "oklch(0.25 0.15 258)",
+          "oklch(0.35 0.15 258)",
+          "oklch(0.45 0.15 258)",
+          "oklch(0.55 0.15 258)",
+          "oklch(0.65 0.15 258)",
+          "oklch(0.8 0.15 258)",
+          "oklch(0.95 0.15 258)"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Alarm Red",
+        "canonical": "oklch(0.69 0.185 25)",
+        "tonalRamp": [
+          "oklch(0.15 0.185 25)",
+          "oklch(0.25 0.185 25)",
+          "oklch(0.35 0.185 25)",
+          "oklch(0.45 0.185 25)",
+          "oklch(0.55 0.185 25)",
+          "oklch(0.65 0.185 25)",
+          "oklch(0.8 0.185 25)",
+          "oklch(0.95 0.185 25)"
+        ]
+      },
+      "ok": {
+        "role": "tertiary",
+        "displayName": "Online Green",
+        "canonical": "oklch(0.78 0.12 162)",
+        "tonalRamp": [
+          "oklch(0.15 0.12 162)",
+          "oklch(0.25 0.12 162)",
+          "oklch(0.35 0.12 162)",
+          "oklch(0.45 0.12 162)",
+          "oklch(0.55 0.12 162)",
+          "oklch(0.65 0.12 162)",
+          "oklch(0.8 0.12 162)",
+          "oklch(0.95 0.12 162)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Home title, scaled for narrow phones."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Phase and card headings, sheet titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "List-row and item titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Everything else, including chat text."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Section labels in Faint."
+      }
+    },
+    "shadows": [
+      {
+        "name": "toast",
+        "value": "0 10px 30px oklch(0 0 0 / 0.55)",
+        "purpose": "Toasts floating over content."
+      },
+      {
+        "name": "menu",
+        "value": "0 10px 30px oklch(0 0 0 / 0.5)",
+        "purpose": "Context menus."
+      },
+      {
+        "name": "sound-dock",
+        "value": "0 -8px 30px oklch(0 0 0 / 0.4)",
+        "purpose": "Upward shadow under the sound dock sheet."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "purpose": "Press scale (0.98, 120ms) and switch thumb; reduced motion falls back to a short fade."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "short-phone",
+        "value": "max-height: 780px"
+      },
+      {
+        "name": "table-landscape",
+        "value": "min-width: 900px and landscape"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single next action; lamp gold.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Start game</button>",
+      "css": ".ds-btn{appearance:none;border:0;border-radius:14px;min-height:52px;padding:0 24px;font:620 16px/1.2 'Instrument Sans Variable',system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;transition:transform .12s cubic-bezier(.2,.8,.2,1)}.ds-btn:active{transform:scale(.98)}.ds-btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.ds-btn-primary{background:oklch(0.84 0.135 78);color:oklch(0.24 0.05 70)}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action on an ink surface.",
+      "html": "<button class=\"ds-btn ds-btn-ghost\">Back</button>",
+      "css": ".ds-btn{appearance:none;border:0;border-radius:14px;min-height:52px;padding:0 24px;font:620 16px/1.2 'Instrument Sans Variable',system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;transition:transform .12s cubic-bezier(.2,.8,.2,1)}.ds-btn:active{transform:scale(.98)}.ds-btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.ds-btn-ghost{background:oklch(0.225 0.016 255);color:oklch(0.955 0.008 255)}"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Destructive actions only.",
+      "html": "<button class=\"ds-btn ds-btn-danger\">End game</button>",
+      "css": ".ds-btn{appearance:none;border:0;border-radius:14px;min-height:52px;padding:0 24px;font:620 16px/1.2 'Instrument Sans Variable',system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;transition:transform .12s cubic-bezier(.2,.8,.2,1)}.ds-btn:active{transform:scale(.98)}.ds-btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.ds-btn-danger{background:oklch(0.69 0.185 25);color:oklch(0.22 0.06 25)}"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Pill choice; selected inverts to text-on-ink.",
+      "html": "<button class=\"ds-chip\">Italiano</button> <button class=\"ds-chip ds-chip-on\">English</button>",
+      "css": ".ds-chip{border:0;min-height:44px;padding:0 16px;border-radius:999px;background:oklch(0.225 0.016 255);color:oklch(0.955 0.008 255);font:560 16px 'Instrument Sans Variable',system-ui,sans-serif}.ds-chip-on{background:oklch(0.955 0.008 255);color:oklch(0.145 0.012 255)}.ds-chip:focus-visible{outline:2px solid oklch(0.84 0.135 78);outline-offset:3px}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Ink field with hairline ring; lamp ring on focus.",
+      "html": "<input class=\"ds-input\" placeholder=\"Your name\">",
+      "css": ".ds-input{width:100%;min-height:52px;border:0;border-radius:14px;background:oklch(0.225 0.016 255);box-shadow:inset 0 0 0 1px oklch(0.34 0.02 255/.5);padding:0 16px;font:16px 'Instrument Sans Variable',system-ui,sans-serif;color:oklch(0.955 0.008 255)}.ds-input:focus{outline:none;box-shadow:inset 0 0 0 2px oklch(0.84 0.135 78)}"
+    },
+    {
+      "name": "Chat Bubbles",
+      "kind": "custom",
+      "refersTo": "bubble-mine",
+      "description": "Blue on the right for you, ink on the left for others.",
+      "html": "<div style=\"display:flex;flex-direction:column;gap:4px\"><div class=\"ds-bub ds-in\">Did you see her car?</div><div class=\"ds-bub ds-out\">Parked at the lake.</div></div>",
+      "css": ".ds-bub{max-width:80%;padding:8px 12px;border-radius:18px;font:16px/1.4 'Instrument Sans Variable',system-ui,sans-serif}.ds-in{background:oklch(0.225 0.016 255);color:oklch(0.955 0.008 255);align-self:flex-start}.ds-out{background:oklch(0.52 0.15 258);color:#fff;align-self:flex-end}"
+    },
+    {
+      "name": "Tab Bar",
+      "kind": "nav",
+      "refersTo": "",
+      "description": "Bottom play navigation with a lamp bar over the active tab.",
+      "html": "<div class=\"ds-tabs\"><button class=\"ds-on\">Chat</button><button>Cards</button><button>Table</button><button>Notes</button></div>",
+      "css": ".ds-tabs{display:flex;background:oklch(0.185 0.014 255);box-shadow:inset 0 1px 0 oklch(0.34 0.02 255/.5)}.ds-tabs button{flex:1;min-height:56px;border:0;background:none;position:relative;color:oklch(0.63 0.02 255);font:600 12px 'Instrument Sans Variable',system-ui,sans-serif}.ds-tabs .ds-on{color:oklch(0.955 0.008 255)}.ds-tabs .ds-on::before{content:'';position:absolute;top:0;left:50%;margin-left:-14px;width:28px;height:3px;border-radius:0 0 3px 3px;background:oklch(0.84 0.135 78)}"
+    },
+    {
+      "name": "Safety X",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "The always-reachable red X card button.",
+      "html": "<button class=\"ds-x\" aria-label=\"X card\">X</button>",
+      "css": ".ds-x{width:44px;height:44px;border-radius:50%;border:0;background:oklch(0.69 0.185 25);color:oklch(0.22 0.06 25);font:700 16px 'Instrument Sans Variable',system-ui,sans-serif}.ds-x:focus-visible{outline:2px solid oklch(0.84 0.135 78);outline-offset:3px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Lamp in the Dark Room",
+    "overview": "Silent Chat is used on a phone, in a dim room, in near silence. Cool ink-blue neutrals recede; one warm lamp-gold accent marks the single thing to act on.",
+    "keyCharacteristics": [
+      "Dark only; no light theme.",
+      "One accent. Blue means me, red means safety, green means online or done.",
+      "Tonal layering instead of shadows.",
+      "Large touch targets, one-handed use.",
+      "Serif for voice, sans for function."
+    ],
+    "rules": [
+      {
+        "name": "The One Lamp Rule",
+        "body": "The gold accent marks the single thing to act on or look at. If two things on a screen are gold, one of them is wrong.",
+        "section": "colors"
+      },
+      {
+        "name": "The Blue Is Me Rule",
+        "body": "Blue never leaves the chat. It belongs to the author's own messages.",
+        "section": "colors"
+      },
+      {
+        "name": "The Red Is Safety Rule",
+        "body": "Red is reserved for the X card, lines, warnings and destructive actions. The X button is always red.",
+        "section": "colors"
+      },
+      {
+        "name": "The Serif Is a Voice Rule",
+        "body": "Fraunces is for names and titles only, never for buttons, labels or chat messages.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tone Not Shadow Rule",
+        "body": "Raise a surface by making it lighter, not by adding a shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep a screen to one gold element.",
+      "Do keep the page from scrolling on a phone: fold, tab or strip content.",
+      "Do keep touch targets at 44px or more.",
+      "Do keep body text at or above 4.5:1 contrast.",
+      "Do keep the X button visible and red on every game screen.",
+      "Do keep copy ready for Italian and English lengths.",
+      "Do respect reduced motion."
+    ],
+    "donts": [
+      "Don't use a light theme or pure black and white.",
+      "Don't use gold for decoration, or blue/red/green outside their roles.",
+      "Don't add thick one-sided coloured borders or nest cards in cards.",
+      "Don't use emoji or Unicode symbols as icons.",
+      "Don't use shadows to raise ordinary surfaces.",
+      "Don't put the serif on buttons, labels or message text.",
+      "Don't hide or move the safety controls."
+    ]
+  }
+}

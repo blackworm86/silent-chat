@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { BookOpen, NotebookPen, ShieldAlert, SlidersHorizontal, Undo2, LogOut, Trash2, Menu, WifiOff, Monitor, CircleAlert } from 'lucide-preact';
+import { BookOpen, NotebookPen, ShieldAlert, SlidersHorizontal, Undo2, LogOut, Trash2, Menu, WifiOff, Monitor, CircleAlert, FlaskConical, ChevronDown } from 'lucide-preact';
 import { view, send, connect, disconnect, fatal, conn, hostOffline, deleteSession } from '../net';
 import { isFirebase } from '../config';
 import { lang, setLang, forget } from '../content';
@@ -9,6 +9,7 @@ import { PlayScreen, NotesTab, HostPanel, LightsOut, Toasts } from './play';
 import { Final, Playback, Debrief, Done } from './end';
 import { SoundDock, soundSheet, type DockMode } from './sound';
 import { dict } from '../i18n';
+import { demoActive, demoSheet, demoSeat, demoSeats } from '../demo';
 import type { View } from '../../shared/types';
 
 export function useWakeLock(on: boolean) {
@@ -98,7 +99,7 @@ export function Screen({ v, onMenu }: { v: View; onMenu?: () => void }) {
 const CAN_GO_BACK = ['safety', 'intro', 'characters', 'drives', 'intros', 'relations', 'voicemail', 'hunches', 'deal', 'rules'];
 type Sheet = null | 'menu' | 'guide' | 'notes' | 'safety' | 'host' | 'delete';
 
-function Shell({ v }: { v: View }) {
+export function Shell({ v }: { v: View }) {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [deleting, setDeleting] = useState(false);
   const close = () => setSheet(null);
@@ -118,13 +119,15 @@ function Shell({ v }: { v: View }) {
       {v.phase === 'play' ? <Screen v={v} onMenu={() => setSheet('menu')} /> : (
         <>
           <header class="topbar">
-            <div><h1 class="title">{t(('phase_' + v.phase) as keyof typeof dict.en)}</h1><div class="sub num">{t('room')} {v.code}</div></div>
+            <div><h1 class="title">{t(('phase_' + v.phase) as keyof typeof dict.en)}</h1>{demoActive.value
+              ? <button class="demo-sub" onClick={() => { demoSheet.value = true; }}><FlaskConical size={13} aria-hidden="true" />{t('demoBadge')}{demoSeat.value !== 0 && <> · {demoSeats.value[demoSeat.value]?.name}</>}<ChevronDown size={14} aria-hidden="true" /></button>
+              : <div class="sub num">{t('room')} {v.code}</div>}</div>
             <div class="topbar-end">
               {showX && <button class="xbtn" aria-label={t('xCard')} onClick={() => send({ type: 'safety', kind: 'x', text: '' })}>X</button>}
               <button class="icon-btn" aria-label={t('menu')} onClick={() => setSheet('menu')}><Menu size={22} /></button>
             </div>
           </header>
-          {isFirebase() && v.me.isHost && ['lobby', 'ready'].includes(v.phase) && <div class="hostnote"><Monitor size={18} style={{ flex: 'none', marginTop: '1px' }} /><span>{t('hostKeepOpen')}</span></div>}
+          {isFirebase() && !demoActive.value && v.me.isHost && ['lobby', 'ready'].includes(v.phase) && <div class="hostnote"><Monitor size={18} style={{ flex: 'none', marginTop: '1px' }} /><span>{t('hostKeepOpen')}</span></div>}
           {isFirebase() && !v.me.isHost && hostOffline.value && <div class="hostnote warn"><WifiOff size={18} style={{ flex: 'none', marginTop: '1px' }} /><span>{t('hostOffline')}</span></div>}
           <main class={`main ${noBar ? 'no-bar' : ''} ${dock === 'top' ? 'with-dock' : ''}`}><Screen v={v} /></main>
         </>

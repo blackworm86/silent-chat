@@ -18,7 +18,7 @@ export const nudge = signal<number>(0);
 let wire: Wire | null = null;
 let offset = 0;
 const samples: number[] = [];
-type Params = { room: string; role: 'player' | 'table'; create: boolean; name: string };
+type Params = { room: string; role: 'player' | 'table'; create: boolean; name: string; local?: boolean };
 let params: Params | null = null;
 let retry = 0;
 let pingTimer: ReturnType<typeof setInterval> | null = null;
@@ -33,7 +33,10 @@ export function deviceId(): string {
   }
   return id;
 }
-export const serverNow = () => Date.now() + offset;
+/** The demo runs the game on a sped-up clock; everything that reads game time goes through here. */
+let clockFn: (() => number) | null = null;
+export function setClockFn(f: (() => number) | null) { clockFn = f; }
+export const serverNow = () => (clockFn ? clockFn() : Date.now() + offset);
 
 function wsUrl(room: string) {
   const override = new URLSearchParams(location.search).get('ws');
@@ -103,6 +106,17 @@ async function openBus(p: Params) {
   }
 }
 
+// ---------------- transport 3: in-page (host demo, the game runs right here) ----------------
+export function connectLocal(room: string, name: string, open: (deliver: (m: ServerMsg) => void) => Wire) {
+  disconnect();
+  params = { room, role: 'player', create: true, name, local: true };
+  fatal.value = null;
+  wire = open(onMsg);
+  conn.value = 'open';
+}
+/** Demo seat switch: forget what the previous seat saw before the new one's state arrives. */
+export function resetLocalView() { batch(() => { view.value = null; chat.value = []; vmItems.value = null; typingMap.value = {}; }); }
+
 // ---------------- games this device hosts (for "Your games" on the home screen) ----------------
 export interface MyGame { code: string; at: number }
 const GAMES_KEY = 'aim.games';
@@ -132,6 +146,7 @@ function setFatal(code: string) {
  */
 export async function deleteSession(code: string): Promise<void> {
   if (params?.room === code && wire) {
+    if (params.local) { send({ type: 'deleteRoom' }); return; }
     send({ type: 'deleteRoom' });
   } else if (isFirebase()) {
     const { makeBus, deleteRoomOnBus } = await import('./bus/connect');
@@ -156,8 +171,8 @@ export async function deleteSession(code: string): Promise<void> {
 // ---------------- shared message handling ----------------
 function onMsg(m: ServerMsg) {
   switch (m.t) {
-    case 'welcome': conn.value = 'open'; if (m.isHost && params?.role === 'player') rememberGame(params.room); break;
-    case 'view': view.value = m.v; if (m.v.phase === 'done' && m.v.me.isHost) forgetGame(m.v.code); break;
+    case 'welcome': conn.value = 'open'; if (m.isHost && params?.role === 'player' && !params.local) rememberGame(params.room); break;
+    case 'view': view.value = m.v; if (m.v.phase === 'done' && m.v.me.isHost && !params?.local) forgetGame(m.v.code); break;
     case 'chatHistory': chat.value = m.ms; break;
     case 'chat': if (!chat.value.some((x) => x.id === m.m.id)) chat.value = [...chat.value, m.m]; break;
     case 'chatUpdate': chat.value = chat.value.map((x) => (x.id === m.m.id ? m.m : x)); break;

@@ -168,6 +168,7 @@ A cool, low-chroma ink scale for surfaces, one warm lamp accent, and three seman
 - **Title** (620, 18 px, 1.3): list-row and item titles in the sans.
 - **Body** (400, 16 px, 1.5): everything else. Chat text is 16 px. Keep line length short on phones; wrap with `text-wrap: pretty`.
 - **Label** (600, 13 px, 1.45): section labels in Faint. Small text is 14 px; the minimum for readable metadata is 12 px.
+- **In-between steps** (used, deliberate): 17 px for ledes, 15 px for small buttons, links and toasts, 20–22 px for the top-bar title and brand, 22 px for the room-code field, 12 px for tags, badges, tab labels and sender names. Nothing goes below 12 px.
 
 Numbers that change (clock, counts, room code) use tabular numerals.
 

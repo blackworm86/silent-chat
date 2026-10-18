@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { KeyRound, Trash2, Tablet } from 'lucide-preact';
+import { KeyRound, Trash2, Tablet, FlaskConical } from 'lucide-preact';
 import { unlock, tryStoredPass, content, lang, setLang, forget } from './content';
 import { t, Btn, Section, ListRow, TextLink, ConfirmSheet, Waiting } from './ui/common';
 import { myGames, deleteSession } from './net';
@@ -7,6 +7,7 @@ import { PlayerRoom } from './ui/shell';
 import { Diag } from './ui/diag';
 import { loadConfig, codeLength, isFirebase } from './config';
 import { TableApp } from './ui/tableapp';
+import { DemoRoom } from './ui/demo';
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const newCode = () => Array.from({ length: codeLength() }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
@@ -103,6 +104,10 @@ function Home() {
           <Btn kind="ghost" disabled={!ok || code.length < 3} onClick={join}>{t('joinGame')}</Btn>
           <TextLink onClick={() => { if (code.length >= 3) location.hash = `#/t/${code}`; }}><Tablet size={16} />{t('joinAsTable')}</TextLink>
         </div>
+        <div class="stack tight">
+          <Btn kind="outline" disabled={!ok} icon={<FlaskConical size={18} />} onClick={() => { location.hash = '#/demo'; }}>{t('hostDemo')}</Btn>
+          <p class="faint small center-text">{t('hostDemoHint')}</p>
+        </div>
         <div class="stack tight center-text" style={{ marginTop: 'var(--s5)' }}>
           <p class="faint small">{t('privateNote')}</p>
           <div class="row" style={{ justifyContent: 'center', gap: '4px' }}>
@@ -160,6 +165,7 @@ export function App() {
     return <Unlock />;                                          // only the host's start screen asks for it
   }
   if (hash === '#/diag') return <Diag />;
+  if (hash === '#/demo') return <DemoRoom />;
   if (route) return route.role === 't' ? <TableApp code={route.code} /> : <PlayerRoom code={route.code} create={route.create} />;
   return <Home />;
 }

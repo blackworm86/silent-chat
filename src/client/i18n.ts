@@ -1,5 +1,17 @@
 // UI strings (Italian / English). Game CARD text is NOT here: it lives in the encrypted content pack.
 const en = {
+  "hostDemo": "Host demo",
+  "hostDemoHint": "Rehearse a whole game on this phone with bot players. Nothing is saved.",
+  "demoBadge": "Demo",
+  "demoTitle": "Demo controls",
+  "demoViewAs": "Look through",
+  "demoYou": "you",
+  "demoSpeed": "Game clock speed",
+  "demoBots": "Bots play by themselves",
+  "demoBotsHint": "The seat you are looking through never plays by itself.",
+  "demoAddBot": "Add a bot",
+  "demoLeave": "Leave the demo",
+  "demoNote": "Nothing here reaches other phones or gets saved. Use the host tools to jump the clock.",
   "needInvite": "Open the invite link or scan the QR code shown by the host. You don't need to type any passphrase.",
   "inviteBad": "This invite doesn't open the game (the host may have changed the passphrase). Ask the host for a new QR code or link.",
   "inviteSecretNote": "The invite link and QR contain the game key. Share them only with your friends.",
@@ -366,6 +378,18 @@ const en = {
 
 export type Key = keyof typeof en;
 const it: Record<Key, string> = {
+  "hostDemo": "Demo per l'host",
+  "hostDemoHint": "Prova un'intera partita su questo telefono con giocatori automatici. Non viene salvato nulla.",
+  "demoBadge": "Demo",
+  "demoTitle": "Controlli demo",
+  "demoViewAs": "Guarda come",
+  "demoYou": "tu",
+  "demoSpeed": "Velocità dell'orologio",
+  "demoBots": "I bot giocano da soli",
+  "demoBotsHint": "Il posto da cui stai guardando non gioca mai da solo.",
+  "demoAddBot": "Aggiungi un bot",
+  "demoLeave": "Esci dalla demo",
+  "demoNote": "Niente arriva agli altri telefoni e niente viene salvato. Usa gli strumenti dell'host per spostare l'orologio.",
   "needInvite": "Apri il link d'invito o inquadra il QR mostrato dall'host. Non serve scrivere nessuna passphrase.",
   "inviteBad": "Questo invito non apre il gioco (l'host potrebbe aver cambiato la passphrase). Chiedi all'host un nuovo QR o link.",
   "inviteSecretNote": "Il link d'invito e il QR contengono la chiave del gioco. Condividili solo con i tuoi amici.",

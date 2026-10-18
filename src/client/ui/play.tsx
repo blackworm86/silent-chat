@@ -520,7 +520,7 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
         </div>
       )}
       <div class="composer">
-        <button class="xbtn" onClick={() => send({ type: 'safety', kind: 'x', text: '' })} aria-label={t('xCard')}>X</button>
+        <button class="xbtn" onPointerDown={(e) => e.preventDefault()} onClick={() => send({ type: 'safety', kind: 'x', text: '' })} aria-label={t('xCard')}>X</button>
         <button class="safety-btn" onClick={() => setSafety(true)} aria-label={t('addLineVeil')}><ShieldAlert size={20} /></button>
         <textarea class="input chat-input" ref={inputEl} rows={1} value={text} enterkeyhint="send" name="chat-message" autocomplete="off" autocapitalize="sentences" spellcheck={false}
           data-lpignore="true" data-1p-ignore="true" data-form-type="other"

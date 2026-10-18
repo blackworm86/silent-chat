@@ -18,6 +18,7 @@ export interface Sources {
 export interface Settings {
   mode: 'digital' | 'aids' | 'custom';
   sources: Sources;
+  /** always 'table' now (kept for old snapshots) */
   soundDevice: 'host' | 'table';
   dayOfWeek: 'saturday' | 'sunday';
   includeBodyEnding: boolean;
@@ -145,6 +146,8 @@ export interface View {
   myLock: Lock | null;
   log: Session['log'];
   hostExtra: { missed: number[] } | null;
+  /** clue schedule with holders (no card text): the table's reminders and the facilitator's overview */
+  timeline: { ts: number; holder: number | null; status: ClueRun['status'] }[] | null;
 }
 
 // ---------- Protocol ----------

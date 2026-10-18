@@ -173,34 +173,66 @@ describe('play', () => {
     expect(h.err('p1')).toBe('host_only');
   });
 
-  it('syncs the clock from a table device playing the video', () => {
+  it('the table runs the clock: start, pause, resume; the video never moves it', () => {
     const h = new Harness();
-    h.join('p0', { create: true }); h.join('p1'); h.join('p2'); h.join('tab', { role: 'table' });
-    h.do('p0', { type: 'setSettings', soundDevice: 'table' });
-    // rush to ready using the harness steps
-    const ids = ['p0', 'p1', 'p2'];
-    h.do('p0', { type: 'next' }); ids.forEach((i) => h.do(i, { type: 'consent' })); h.do('p0', { type: 'next' });
-    h.do('p0', { type: 'next' }); // intro -> characters (digital poster)
-    h.do('p1', { type: 'pickCharacter', id: 'evan' }); h.do('p2', { type: 'pickCharacter', id: 'julia' });
-    h.do('p0', { type: 'next' }); h.do('p0', { type: 'next' });
-    ids.forEach((i) => h.do(i, { type: 'introDone' })); h.do('p0', { type: 'next' });
-    ids.forEach((i, k) => { h.do(i, { type: 'assignRelation', line: 0, target: (k + 1) % 3 }); h.do(i, { type: 'assignRelation', line: 1, target: (k + 2) % 3 }); });
-    h.do('p0', { type: 'next' }); ids.forEach((i) => h.do(i, { type: 'voicemail', mime: 'a/b', b64: 'QQ==' })); h.do('p0', { type: 'next' });
-    ids.forEach((i) => h.do(i, { type: 'hunchDone' })); h.do('p0', { type: 'next' }); h.do('p0', { type: 'next' });
-    ids.forEach((i) => h.do(i, { type: 'ready', value: true })); h.do('p0', { type: 'next' });
-    expect(h.v('p0').phase).toBe('ready');
-    expect(h.v('tab').me.isSound).toBe(true);
-    h.do('p0', { type: 'startGame', source: 'video' });
-    expect(h.err('p0')).toBe('not_sound_device');
-    h.do('tab', { type: 'startGame', source: 'video' });
+    setupToReady(h, 3);
+    expect(h.v('tbl').me.isSound).toBe(true);
+    expect(h.v('p0').me.isSound).toBe(false);
+    h.do('p1', { type: 'startGame', source: 'manual' });
+    expect(h.err('p1')).toBe('not_sound_device');
+    h.do('tbl', { type: 'startGame', source: 'video' });
     expect(h.v('p0').phase).toBe('play');
     h.advance(10000);
-    h.do('tab', { type: 'reportVideo', sec: 25, playing: true });   // video says 25 s elapsed (clock said 10)
-    expect(h.room.remaining()).toBeCloseTo(90 * 60000 - 25000, -3);
-    h.do('tab', { type: 'reportVideo', sec: 26, playing: false });  // paused
+    h.do('tbl', { type: 'reportVideo', sec: 25, playing: true });   // the video follows the clock, not the other way
+    expect(h.room.remaining()).toBeCloseTo(90 * 60000 - 10000, -3);
+    h.do('tbl', { type: 'pauseClock' });
     expect(h.room.s!.clock.running).toBe(false);
-    h.do('p1', { type: 'reportVideo', sec: 1, playing: true });     // ignored: not the sound device
+    h.do('p1', { type: 'resumeClock' });                             // a plain player cannot
     expect(h.room.s!.clock.running).toBe(false);
+    h.do('p0', { type: 'resumeClock' });                             // the facilitator can
+    expect(h.room.s!.clock.running).toBe(true);
+    expect(h.v('tbl').timeline?.length).toBeGreaterThan(5);           // the table gets the clue timeline
+    expect(h.v('p1').timeline).toBeNull();
+  });
+});
+
+describe('table and facilitator', () => {
+  it('only the table opens a room; the table picks the facilitator in the lobby', () => {
+    const h = new Harness();
+    h.room.open('x', { t: 'hello', room: 'TEST', deviceId: 'x', role: 'player', create: true, name: 'x' });
+    expect(h.inbox.get('x')![0]).toMatchObject({ t: 'err', code: 'no_room' });
+    h.join('tbl', { role: 'table', create: true });
+    ['a', 'b', 'c'].forEach((id) => h.join(id));
+    expect(h.v('a').players.every((p) => !p.isHost && !p.characterId)).toBe(true);
+    h.do('tbl', { type: 'next' });
+    expect(h.err('tbl')).toBe('player_only');
+    h.do('tbl', { type: 'setFacilitator', seat: 1 });
+    expect(h.v('a').players[1]).toMatchObject({ isHost: true, characterId: 'charlie' });
+    h.do('tbl', { type: 'setFacilitator', seat: 2 });                  // change of mind
+    expect(h.v('a').players[1]).toMatchObject({ isHost: false, characterId: null });
+    expect(h.v('c').me.isHost).toBe(true);
+    h.do('c', { type: 'next' });
+    expect(h.v('a').phase).toBe('safety');
+    h.do('tbl', { type: 'setFacilitator', seat: 0 });
+    expect(h.err('tbl')).toBe('too_late');
+  });
+  it('the lobby cannot start without a facilitator', () => {
+    const h = new Harness();
+    h.join('tbl', { role: 'table', create: true });
+    ['a', 'b', 'c'].forEach((id) => h.join(id));
+    h.do('a', { type: 'next' });
+    expect(h.err('a')).toBe('host_only');
+  });
+  it('a table restart brings the clock back paused at the last save', () => {
+    const h = new Harness();
+    setupToReady(h, 3);
+    h.do('tbl', { type: 'startGame', source: 'manual' });
+    h.advance(60000);
+    const snap = h.room.snapshot();
+    h.t += 5 * 60000;                                                // the tablet is off for 5 minutes
+    const r = (h.room.constructor as any).restore({ now: () => h.t, send: () => {} }, snap);
+    expect(r.s.clock.running).toBe(false);
+    expect(r.remaining()).toBeCloseTo(89 * 60000, -3);
   });
 });
 

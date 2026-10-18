@@ -16,6 +16,13 @@ export class Harness {
     });
   }
   join(id: string, opts: { create?: boolean; role?: 'player' | 'table'; name?: string } = {}) {
+    // A player "creating" stands for the usual start: the table opens the room and picks this player as facilitator.
+    if (opts.create && (opts.role ?? 'player') === 'player') {
+      this.room.open('tbl', { t: 'hello', room: 'TEST', deviceId: 'tbl', role: 'table', create: true, name: 'table' });
+      this.room.open(id, { t: 'hello', room: 'TEST', deviceId: id, role: 'player', name: opts.name ?? id });
+      this.do('tbl', { type: 'setFacilitator', seat: 0 });
+      return;
+    }
     this.room.open(id, { t: 'hello', room: 'TEST', deviceId: id, role: opts.role ?? 'player', create: opts.create, name: opts.name ?? id });
   }
   do(id: string, a: Intent) { this.room.receive(id, { t: 'do', a } as ClientMsg); }

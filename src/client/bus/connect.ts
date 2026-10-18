@@ -26,8 +26,8 @@ function defaultStore() {
 }
 
 /**
- * The device that CREATES a room becomes its server (and keeps being it after a page reload).
- * Every other device is a remote client.
+ * The TABLE (tablet/PC) that creates a room becomes its server, and keeps being it after a page reload.
+ * Phones, the facilitator's included, are remote clients.
  */
 export async function connectBus(bus: Bus, p: BusParams): Promise<Wire | null> {
   const store = p.storage ?? defaultStore();
@@ -35,7 +35,7 @@ export async function connectBus(bus: Bus, p: BusParams): Promise<Wire | null> {
   const hello: Hello = { t: 'hello', room: p.code, deviceId: p.deviceId, role: p.role, create: false, name: p.name };
   const meta = await bus.getMeta(p.code);
   const hostFlag = store.get('aim.host.' + p.code) === p.deviceId;
-  const becomeHost = p.role === 'player' && !meta?.closed && ((p.create && !meta) || (hostFlag && !!meta));
+  const becomeHost = p.role === 'table' && !meta?.closed && ((p.create && !meta) || (hostFlag && !!meta));
   if (becomeHost) {
     const engine = new HostEngine({ code: p.code, deviceId: p.deviceId, bus, key, onLocal: p.onMsg });
     await engine.start(meta ? 'resume' : 'create');

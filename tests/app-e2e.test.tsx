@@ -14,6 +14,11 @@ const maybe = has ? describe : describe.skip;
 let server: import('node:http').Server;
 afterAll(() => { server?.close(); });
 
+function rawTable(port: number, code: string) {
+  const ws = new WebSocket(`ws://127.0.0.1:${port}/ws/${code}`);
+  ws.on('open', () => ws.send(JSON.stringify({ t: 'hello', room: code, deviceId: 'tbl', role: 'table', create: true, name: 'table' })));
+  return ws;
+}
 function rawPlayer(port: number, code: string, id: string) {
   const ws = new WebSocket(`ws://127.0.0.1:${port}/ws/${code}`);
   ws.on('open', () => ws.send(JSON.stringify({ t: 'hello', room: code, deviceId: id, role: 'player', name: id })));
@@ -29,11 +34,14 @@ maybe('real <App/> against the relay (jsdom WebSocket)', () => {
     lang.value = 'en';
     localStorage.setItem('aim.name', 'Giulia');
     history.replaceState(null, '', `/?ws=ws://127.0.0.1:${port}`);
-    location.hash = '#/r/ABCD/new';
+    const tbl = rawTable(port, 'ABCD');                                    // the table opens the game
+    await new Promise((r) => tbl.on('message', r));
+    location.hash = '#/r/ABCD';
 
     render(<App />);
     await screen.findByText('ABCD', {}, { timeout: 4000 });                // lobby shows the room code
-    expect(view.value!.me.isHost).toBe(true);
+    tbl.send(JSON.stringify({ t: 'do', a: { type: 'setFacilitator', seat: 0 } }));   // the table picks Giulia
+    await waitFor(() => expect(view.value!.me.isHost).toBe(true));
     expect(screen.getByText(/At least 3 players/)).toBeTruthy();
 
     const b = rawPlayer(port, 'ABCD', 'bea'), c = rawPlayer(port, 'ABCD', 'carlo');
@@ -64,7 +72,7 @@ maybe('real <App/> against the relay (jsdom WebSocket)', () => {
     await screen.findByText('Introduzione');
     cleanup();
     expect(chat.value).toEqual([]);
-    b.close(); c.close();
+    b.close(); c.close(); tbl.close();
     await new Promise((r) => setTimeout(r, 150));     // let queued UI effects finish before teardown
   }, 20000);
 });

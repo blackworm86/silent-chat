@@ -89,13 +89,6 @@ function Settings({ v }: { v: View }) {
           </div>
         )}
       </Section>
-      <Section title={t('soundDevice')}>
-        <div class="seg">
-          <button class={st.soundDevice === 'host' ? 'on' : ''} disabled={!host} onClick={() => set({ soundDevice: 'host' })}>{t('soundHost')}</button>
-          <button class={st.soundDevice === 'table' ? 'on' : ''} disabled={!host} onClick={() => set({ soundDevice: 'table' })}>{t('soundTable')}</button>
-        </div>
-        <Muted small>{st.soundDevice === 'table' ? t('soundTableHint') : t('soundHostHint')}</Muted>
-      </Section>
       <Section title={t('dayOfWeek')}>
         <div class="seg">
           <button class={st.dayOfWeek === 'saturday' ? 'on' : ''} disabled={!host} onClick={() => set({ dayOfWeek: 'saturday' })}>{dayWord('saturday')}</button>
@@ -119,11 +112,11 @@ export function Lobby({ v }: { v: View }) {
   const [name, setName] = useState(self?.name ?? '');
   const [editing, setEditing] = useState(false);
   const [settings, setSettings] = useState(false);
-  const [tableQr, setTableQr] = useState(false);
   const [shared, setShared] = useState<null | 'copied'>(null);
   const st = v.settings;
   const enough = v.players.length >= 3;
-  const summary = [st.mode === 'aids' ? t('modeAids') : t('modeDigital'), st.soundDevice === 'table' ? t('soundTable') : t('soundHost'), dayWord(st.dayOfWeek)].join(' · ');
+  const facilitator = v.players.some((p) => p.isHost);
+  const summary = [st.mode === 'aids' ? t('modeAids') : t('modeDigital'), dayWord(st.dayOfWeek)].join(' · ');
   const share = async () => { if ((await shareInvite(inviteUrl(v.code, 'r'))) === 'copied') { setShared('copied'); setTimeout(() => setShared(null), 2200); } };
   const saveName = () => { if (name.trim()) send({ type: 'setName', name: name.trim() }); setEditing(false); };
   return (
@@ -139,7 +132,6 @@ export function Lobby({ v }: { v: View }) {
       <p class="faint small center-text invite-note">
         <KeyRound size={13} style={{ verticalAlign: '-2px', marginRight: '4px' }} />{t('inviteSecretNote')}
       </p>
-      {tableQr && <Modal title={t('showTableQr')} onClose={() => setTableQr(false)}><Qr text={inviteUrl(v.code, 't')} /></Modal>}
 
       <Section title={`${t('players')} · ${v.players.length}/5`}>
         {editing && (
@@ -160,11 +152,11 @@ export function Lobby({ v }: { v: View }) {
               ? <button class="seat" key={p.seat} aria-label={`${p.name}, ${t('edit')}`} onClick={() => { setName(self.name); setEditing(true); }}>{body}<Pencil size={14} class="faint" /></button>
               : <div class="seat" key={p.seat}>{body}</div>;
           })}
-          <button class="seat ghost" aria-label={t('showTableQr')} onClick={() => setTableQr(true)}>
+          <div class="seat ghost">
             <span class="avatar" style={{ width: '30px', height: '30px', background: 'var(--ink-2)', color: 'var(--fg-3)' }}><Tablet size={16} /></span>
             <span class="seat-name"><span class="muted">{t('tableDevice')}</span><small>{v.tableConnected ? t('connected') : t('notConnected')}</small></span>
-            {v.tableConnected ? <span class="dot on" /> : <span class="tag">QR</span>}
-          </button>
+            <span class={`dot ${v.tableConnected ? 'on' : ''}`} role="img" aria-label={v.tableConnected ? t('online') : t('offline')} />
+          </div>
         </div>
       </Section>
 
@@ -173,7 +165,7 @@ export function Lobby({ v }: { v: View }) {
       </div>
       {settings && <Modal title={t('gameSettings')} onClose={() => setSettings(false)}><Settings v={v} /></Modal>}
 
-      <PhaseBar v={v} blocked={!enough} label={t('startSetup')} force={false} status={enough ? undefined : t('needThree')} />
+      <PhaseBar v={v} blocked={!enough} label={t('startSetup')} force={false} status={!enough ? t('needThree') : !facilitator ? t('facilitatorMissing') : undefined} />
     </>
   );
 }
@@ -563,13 +555,12 @@ export function Ready({ v }: { v: View }) {
       <Panel amber>
         <h2>{t('startTitle')}</h2>
         <p>{t('startHint')}</p>
-        <Muted small>{v.settings.soundDevice === 'table' ? t('soundTableHint') : t('soundHostHint')}</Muted>
+        <Muted small>{t('soundTableHint')}</Muted>
       </Panel>
       <ActionBar>
         {isSound && <Btn icon={<Play size={20} />} onClick={() => startAudio(v.settings.videoOffsetSec)}>{t('startGame')}</Btn>}
-        {host && isSound && <TextLink onClick={() => send({ type: 'startGame', source: 'manual' })}>{t('startManual')}</TextLink>}
-        {host && !isSound && <Btn kind="ghost" onClick={() => send({ type: 'startGame', source: 'manual' })}>{t('startManual')}</Btn>}
-        {!host && !isSound && <Waiting>{v.settings.soundDevice === 'table' ? (v.tableConnected ? t('waitTableStart') : t('tableMissing')) : t('waitHost')}</Waiting>}
+        {!isSound && <Waiting>{v.tableConnected ? t('waitTableStart') : t('tableMissing')}</Waiting>}
+        {host && !isSound && !v.tableConnected && <TextLink onClick={() => send({ type: 'startGame', source: 'manual' })}>{t('startManual')}</TextLink>}
       </ActionBar>
     </>
   );

@@ -48,8 +48,8 @@ function Unlock() {
   );
 }
 
-/** Games this device hosts: resume or delete them without remembering the code. */
-function MyGames({ ok }: { ok: boolean }) {
+/** Games this device runs as the table: resume or delete them without remembering the code. */
+function MyGames() {
   const [del, setDel] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   if (myGames.value.length === 0) return null;
@@ -66,7 +66,7 @@ function MyGames({ ok }: { ok: boolean }) {
         {myGames.value.map((g) => (
           <ListRow key={g.code} sub={t('startedOn', { date: fmt(g.at) })}
             end={<span class="row nowrap" style={{ gap: '4px' }}>
-              <Btn small full={false} kind="ghost" disabled={!ok} onClick={() => { location.hash = `#/r/${g.code}`; }}>{t('resume')}</Btn>
+              <Btn small full={false} kind="ghost" onClick={() => { location.hash = `#/t/${g.code}`; }}>{t('resume')}</Btn>
               <button class="icon-btn warn" aria-label={`${t('deleteGame')} ${g.code}`} onClick={() => setDel(g.code)}><Trash2 size={19} /></button>
             </span>}>
             <b class="num" style={{ letterSpacing: '0.12em' }}>{g.code}</b>
@@ -92,17 +92,17 @@ function Home() {
       <main class="main no-bar">
         <div class="row between" style={{ paddingTop: 'var(--safe-t)' }}><span class="brand">Silent Chat</span><LangSwitch /></div>
         <div class="hero"><h1>{t('homeTitle')}</h1><p class="lede">{t('homeTag')}</p></div>
-        <div class="stack">
-          <input class="input" value={name} maxLength={20} autocomplete="given-name" placeholder={t('yourName')} onInput={(e) => saveName((e.target as HTMLInputElement).value)} />
-          <Btn disabled={!ok} onClick={() => { location.hash = `#/r/${newCode()}/new`; }}>{t('createGame')}</Btn>
+        <div class="stack tight">
+          <Btn icon={<Tablet size={18} />} onClick={() => { location.hash = `#/t/${newCode()}/new`; }}>{t('createGame')}</Btn>
+          <p class="faint small">{t('createHint')}</p>
         </div>
-        <MyGames ok={ok} />
+        <MyGames />
         <div class="or">{t('orJoin')}</div>
         <div class="stack">
+          <input class="input" value={name} maxLength={20} autocomplete="given-name" placeholder={t('yourName')} onInput={(e) => saveName((e.target as HTMLInputElement).value)} />
           <input class="input code-input" value={code} maxLength={codeLength()} autocapitalize="characters" autocomplete="off" spellcheck={false} placeholder={t('roomCode')}
             onInput={(e) => setCode((e.target as HTMLInputElement).value.toUpperCase())} onKeyDown={(e) => e.key === 'Enter' && join()} />
           <Btn kind="ghost" disabled={!ok || code.length < 3} onClick={join}>{t('joinGame')}</Btn>
-          <TextLink onClick={() => { if (code.length >= 3) location.hash = `#/t/${code}`; }}><Tablet size={16} />{t('joinAsTable')}</TextLink>
         </div>
         <div class="stack tight">
           <Btn kind="outline" disabled={!ok} icon={<FlaskConical size={18} />} onClick={() => { location.hash = '#/demo'; }}>{t('hostDemo')}</Btn>
@@ -166,6 +166,6 @@ export function App() {
   }
   if (hash === '#/diag') return <Diag />;
   if (hash === '#/demo') return <DemoRoom />;
-  if (route) return route.role === 't' ? <TableApp code={route.code} /> : <PlayerRoom code={route.code} create={route.create} />;
+  if (route) return route.role === 't' ? <TableApp code={route.code} create={route.create} /> : <PlayerRoom code={route.code} create={false} />;
   return <Home />;
 }

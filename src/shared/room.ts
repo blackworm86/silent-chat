@@ -19,7 +19,7 @@ export function presetSources(mode: 'digital' | 'aids'): Sources {
 }
 export function defaultSettings(): Settings {
   return {
-    mode: 'digital', sources: presetSources('digital'), soundDevice: 'host', dayOfWeek: 'saturday',
+    mode: 'digital', sources: presetSources('digital'), soundDevice: 'table', dayOfWeek: 'saturday',
     includeBodyEnding: true, showSecretsWhileChoosing: false, videoOffsetSec: 0
   };
 }
@@ -36,12 +36,17 @@ export class Room {
   constructor(private io: IO) {}
 
   // ---------- persistence ----------
-  snapshot(): string { return JSON.stringify({ s: this.s }); }
+  snapshot(): string { return JSON.stringify({ s: this.s, savedAt: this.io.now() }); }
   static restore(io: IO, snap: string, vms: [number, { mime: string; b64: string }][] = []): Room {
     const r = new Room(io);
     const o = JSON.parse(snap);
     r.s = o.s; r.vms = new Map(vms);
     r.s?.players.forEach((p) => (p.connected = false));
+    // the table went away mid-game: the clock comes back paused at the moment of the last save
+    const c = r.s?.clock;
+    if (c?.running && typeof o.savedAt === 'number') {
+      c.pausedRemainingMs = Math.max(0, c.lengthMs - (o.savedAt - c.startedAt)); c.running = false;
+    }
     return r;
   }
 
@@ -49,7 +54,8 @@ export class Room {
   open(deviceId: string, h: Hello): void {
     const now = this.io.now();
     if (!this.s) {
-      if (!(h.create && h.role === 'player')) return this.send(deviceId, { t: 'err', code: 'no_room' });
+      // the table (tablet/PC) opens the game; phones only join
+      if (!(h.create && h.role === 'table')) return this.send(deviceId, { t: 'err', code: 'no_room' });
       this.s = this.create(h.room, now);
     }
     const s = this.s;
@@ -62,10 +68,9 @@ export class Room {
       if (!p) {
         if (s.phase !== 'lobby') return this.send(deviceId, { t: 'err', code: 'started' });
         if (s.players.length >= 5) return this.send(deviceId, { t: 'err', code: 'full' });
-        const isHost = s.players.length === 0;
         p = {
           seat: s.players.length, deviceId, name: clean(h.name, 20) || `P${s.players.length + 1}`,
-          isHost, connected: true, characterId: isHost ? 'charlie' : null, driveId: null,
+          isHost: false, connected: true, characterId: null, driveId: null,
           consent: false, introDone: false, hunchDone: false, ready: false, identity: 'self',
           lock: null, relations: [null, null], vm: false, nudgedAt: null
         };
@@ -174,6 +179,7 @@ export class Room {
   private get S(): Session { return this.s!; }
   private player(deviceId: string): Player | undefined { return this.S.players.find((p) => p.deviceId === deviceId); }
   private bySeat(seat: number): Player | undefined { return this.S.players.find((p) => p.seat === seat); }
+  /** The facilitator: a player (Charlie) with admin powers, chosen on the table in the lobby. */
   private host(): Player { return this.S.players.find((p) => p.isHost)!; }
   private rand() { return nextRandom(this.S); }
   private send(deviceId: string, m: ServerMsg) { this.io.send(deviceId, m); }
@@ -184,19 +190,18 @@ export class Room {
     const p = seat === null ? undefined : this.bySeat(seat);
     if (p?.connected) this.send(p.deviceId, { t: 'toast', code, params });
   }
-  private toastHost(code: string, params?: Record<string, unknown>) { this.toast(this.host().seat, code, params); }
+  private toastHost(code: string, params?: Record<string, unknown>) { const h = this.host(); if (h) this.toast(h.seat, code, params); }
   private log(code: string, params?: Record<string, unknown>) {
     this.S.log.push({ at: this.io.now(), code, params });
     if (this.S.log.length > 200) this.S.log.shift();
   }
   private err(ctx: Ctx, code: string): never { throw new Error(code); }
   private needHost(ctx: Ctx) { if (!ctx.p?.isHost) this.err(ctx, 'host_only'); }
+  /** Clock controls: the table runs the countdown and the music; the facilitator can also pause/resume. */
+  private needClock(ctx: Ctx) { if (!(ctx.table || ctx.p?.isHost)) this.err(ctx, 'host_only'); }
   private needPlayer(ctx: Ctx): Player { if (!ctx.p) this.err(ctx, 'player_only'); return ctx.p!; }
-  private isSound(deviceId: string): boolean {
-    const s = this.S;
-    if (s.settings.soundDevice === 'table') return s.tableDeviceId === deviceId;
-    return this.player(deviceId)?.isHost ?? false;
-  }
+  /** The table always plays the video/music. */
+  private isSound(deviceId: string): boolean { return this.S.tableDeviceId === deviceId; }
   private run(ts: number): ClueRun | undefined { return this.S.clues.find((r) => r.ts === ts); }
 
   private changed() {
@@ -250,6 +255,7 @@ export class Room {
     switch (phase) {
       case 'lobby':
         if (s.players.length < 3) b.push('min_players');
+        if (!s.players.some((p) => p.isHost)) b.push('facilitator');
         break;
       case 'safety': if (!all((p) => p.consent)) b.push('consent'); break;
       case 'intro': if (s.posterIndex === null) b.push('poster'); break;
@@ -353,7 +359,7 @@ export class Room {
 
     // devices without a seat (table) may only do a few things
     if (ctx.table) {
-      if (!['startGame', 'reportVideo', 'setClockSource', 'getVoicemails'].includes(T)) this.err(ctx, 'player_only');
+      if (!['startGame', 'reportVideo', 'setClockSource', 'getVoicemails', 'pauseClock', 'resumeClock', 'setFacilitator', 'deleteRoom'].includes(T)) this.err(ctx, 'player_only');
     }
 
     switch (T) {
@@ -365,11 +371,18 @@ export class Room {
         const st = s.settings;
         if (a.mode === 'digital' || a.mode === 'aids') { st.mode = a.mode; st.sources = presetSources(a.mode); }
         if (a.sources) { st.sources = { ...st.sources, ...a.sources }; st.mode = 'custom'; }
-        if (a.soundDevice === 'host' || a.soundDevice === 'table') st.soundDevice = a.soundDevice;
         if (a.dayOfWeek === 'saturday' || a.dayOfWeek === 'sunday') st.dayOfWeek = a.dayOfWeek;
         if (typeof a.includeBodyEnding === 'boolean') st.includeBodyEnding = a.includeBodyEnding;
         if (typeof a.showSecretsWhileChoosing === 'boolean') st.showSecretsWhileChoosing = a.showSecretsWhileChoosing;
         if (typeof a.videoOffsetSec === 'number') st.videoOffsetSec = Math.max(0, Math.min(600, Math.round(a.videoOffsetSec)));
+        return;
+      }
+      case 'setFacilitator': {
+        if (s.phase !== 'lobby') this.err(ctx, 'too_late');
+        const f = this.bySeat(Number(a.seat));
+        if (!f) this.err(ctx, 'bad_target');
+        for (const p of s.players) if (p.isHost) { p.isHost = false; p.characterId = null; }
+        f!.isHost = true; f!.characterId = 'charlie';
         return;
       }
       case 'next': this.needHost(ctx); this.advance(!!a.force); return;
@@ -452,7 +465,7 @@ export class Room {
       // ---- start / clock ----
       case 'startGame': {
         if (s.phase !== 'ready') this.err(ctx, 'not_ready');
-        const okDevice = this.isSound(ctx.deviceId) || (ctx.p?.isHost && a.source === 'manual');
+        const okDevice = this.isSound(ctx.deviceId) || ctx.p?.isHost;
         if (!okDevice) this.err(ctx, 'not_sound_device');
         this.startedClock(a.source === 'video' ? 'video' : 'manual');
         s.phase = 'play';
@@ -460,8 +473,8 @@ export class Room {
         this.tick();
         return;
       }
-      case 'pauseClock': this.needHost(ctx); this.pauseClock(); return;
-      case 'resumeClock': this.needHost(ctx); this.resumeClock(); return;
+      case 'pauseClock': this.needClock(ctx); this.pauseClock(); return;
+      case 'resumeClock': this.needClock(ctx); this.resumeClock(); return;
       case 'nudgeClock': {
         this.needHost(ctx);
         const ms = Math.max(-60000, Math.min(60000, Number(a.ms) || 0));
@@ -484,22 +497,8 @@ export class Room {
         if (!(ctx.p?.isHost || this.isSound(ctx.deviceId))) this.err(ctx, 'not_allowed');
         s.clock.source = a.source === 'video' ? 'video' : 'manual'; return;
       }
-      case 'reportVideo': {
-        if (!this.isSound(ctx.deviceId) || s.clock.source !== 'video') return;
-        if (s.phase !== 'play' && s.phase !== 'ready') return;
-        const sec = Number(a.sec) - s.settings.videoOffsetSec;
-        if (!isFinite(sec) || sec < 0) return;
-        const now = this.io.now();
-        const c = s.clock;
-        if (a.playing) {
-          const wantStart = now - sec * 1000;
-          if (!c.running && s.phase === 'play') { c.running = true; c.startedAt = wantStart; c.pausedRemainingMs = null; }
-          else if (Math.abs(c.startedAt - wantStart) > 400) c.startedAt = wantStart;
-        } else if (c.running && s.phase === 'play') {
-          c.pausedRemainingMs = Math.max(0, c.lengthMs - sec * 1000); c.running = false;
-        }
-        return;
-      }
+      // the game clock is the source of truth; the table's video follows it (seeks when it drifts), never the other way round
+      case 'reportVideo': return;
 
       // ---- play: clues ----
       case 'flipClue': this.flip(ctx, a); return;
@@ -618,7 +617,7 @@ export class Room {
         return;
       }
       case 'endGame': this.needHost(ctx); s.clock.running = false; s.clock.pausedRemainingMs = 0; this.enter('final'); return;
-      case 'deleteRoom': this.needHost(ctx); this.destroy(); return;
+      case 'deleteRoom': if (!ctx.table) this.needHost(ctx); this.destroy(); return;
       case 'getVoicemails': {
         if (!(this.isSound(ctx.deviceId) || ctx.p?.isHost)) this.err(ctx, 'not_allowed');
         const order = this.clockwise();
@@ -906,7 +905,8 @@ export class Room {
       mySearch: p ? s.decks.search.drawn.filter((d) => d.seat === p.seat).map((d) => ({ id: d.id, at: d.at })) : [],
       results: s.results, lightsOut: s.lightsOut, safety: s.safety,
       myLock: p?.lock ?? null, log: s.log.slice(-40),
-      hostExtra: p?.isHost ? { missed } : null
+      hostExtra: p?.isHost ? { missed } : null,
+      timeline: p?.isHost || role === 'table' ? s.clues.map((r) => ({ ts: r.ts, holder: r.holder, status: r.status })) : null
     };
   }
 }

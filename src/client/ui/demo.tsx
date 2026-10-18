@@ -1,9 +1,10 @@
 import { useEffect } from 'preact/hooks';
-import { FlaskConical, UserPlus, LogOut } from 'lucide-preact';
+import { FlaskConical, UserPlus, LogOut, Tablet } from 'lucide-preact';
 import { view, fatal } from '../net';
 import { t, Btn, Modal, Section, Switch, Muted, ListRow } from './common';
 import { Shell, FatalScreen, Connecting, useWakeLock } from './shell';
-import { startDemo, stopDemo, viewAs, addBot, setDemoSpeed, nudgeBots, demoSeat, demoSeats, demoSpeed, demoAuto, demoSheet } from '../demo';
+import { TableBody } from './tableapp';
+import { startDemo, stopDemo, viewAs, addBot, setDemoSpeed, nudgeBots, demoSeat, demoSeats, demoSpeed, demoAuto, demoSheet, TABLE } from '../demo';
 
 const SPEEDS = [1, 10, 30, 60];
 
@@ -17,12 +18,12 @@ export function DemoRoom() {
   if (fatal.value) return <FatalScreen code={fatal.value} />;
   return (
     <>
-      {v ? <Shell v={v} /> : <Connecting />}
-      {/* setup screens carry the demo button in the top bar; the play screen has no top bar, so it floats between clock and menu */}
-      {v?.phase === 'play' && (
+      {!v ? <Connecting /> : demoSeat.value === TABLE ? <TableBody v={v} noSound /> : <Shell v={v} />}
+      {/* phone setup screens carry the demo button in the top bar; the table and the play screen have none, so it floats */}
+      {v && (v.phase === 'play' || demoSeat.value === TABLE) && (
         <button class="demo-pill" onClick={() => { demoSheet.value = true; }} aria-label={t('demoTitle')}>
           <FlaskConical size={14} aria-hidden="true" />{t('demoBadge')}
-          {demoSeat.value !== 0 && <span class="demo-who">{demoSeats.value[demoSeat.value]?.name}</span>}
+          <span class="demo-who">{demoSeat.value === TABLE ? t('demoTable') : demoSeats.value[demoSeat.value]?.name}</span>
         </button>
       )}
       {demoSheet.value && <DemoSheet onClose={() => { demoSheet.value = false; }} />}
@@ -36,6 +37,9 @@ function DemoSheet({ onClose }: { onClose: () => void }) {
     <Modal title={t('demoTitle')} onClose={onClose}>
       <Section title={t('demoViewAs')}>
         <div class="chips">
+          <button class={`chip ${demoSeat.value === TABLE ? 'on' : ''}`} aria-pressed={demoSeat.value === TABLE} onClick={() => { viewAs(TABLE); onClose(); }}>
+            <Tablet size={16} aria-hidden="true" />{t('demoTable')}
+          </button>
           {demoSeats.value.map((s) => (
             <button key={s.seat} class={`chip ${demoSeat.value === s.seat ? 'on' : ''}`} aria-pressed={demoSeat.value === s.seat}
               onClick={() => { viewAs(s.seat); onClose(); }}>

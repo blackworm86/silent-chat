@@ -10,8 +10,9 @@ import { lang } from './content';
 export const DEMO_CODE = 'DEMO';
 export const BOT_NAMES = ['Ada', 'Bruno', 'Celia', 'Dario'];
 
-/** Seat the screen currently shows (0 = you, the host). */
-export const demoSeat = signal(0);
+/** What the screen currently shows: TABLE (the tablet/PC), 0 = your phone, 1.. = a bot's phone. */
+export const TABLE = -1;
+export const demoSeat = signal(TABLE);
 /** Game-time speed: 1 = real time, 30 = a 90-minute game in 3 minutes. */
 export const demoSpeed = signal(1);
 /** Bots act on their own (except the seat you are looking through). */
@@ -29,14 +30,15 @@ export function setDemoSpeed(x: number) { base = now(); anchor = Date.now(); dem
 interface Dev { id: string; name: string; view: View | null; chat: ChatMsg[]; busy: ReturnType<typeof setTimeout> | null; said: Set<string> }
 let room: Room | null = null;
 let devs: Dev[] = [];
+let table: Dev | null = null;
 let deliver: ((m: ServerMsg) => void) | null = null;
 let timer: ReturnType<typeof setInterval> | null = null;
 
-const hello = (d: Dev, create = false): Hello => ({ t: 'hello', room: DEMO_CODE, deviceId: d.id, role: 'player', create, name: d.name });
-const active = () => devs[demoSeat.value];
+const hello = (d: Dev, create = false): Hello => ({ t: 'hello', room: DEMO_CODE, deviceId: d.id, role: d === table ? 'table' : 'player', create, name: d.name });
+const active = () => (demoSeat.value === TABLE ? table : devs[demoSeat.value]);
 
 function route(id: string, m: ServerMsg) {
-  const d = devs.find((x) => x.id === id);
+  const d = id === table?.id ? table : devs.find((x) => x.id === id);
   if (!d) return;
   if (m.t === 'view') d.view = m.v;
   if (m.t === 'chatHistory') d.chat = m.ms;
@@ -44,13 +46,15 @@ function route(id: string, m: ServerMsg) {
   if (m.t === 'chatUpdate') d.chat = d.chat.map((x) => (x.id === m.m.id ? m.m : x));
   if (m.t === 'err' && m.code === 'deleted') { stopDemo(); location.hash = '#/'; return; }
   if (d === active()) deliver?.(m);
-  else if (m.t === 'view' || m.t === 'chat') schedule(d);
+  else if ((m.t === 'view' || m.t === 'chat') && d !== table) schedule(d);
 }
 
 export function startDemo(hostName: string, bots = 3) {
   stopDemo();
-  base = Date.now(); anchor = Date.now(); demoSpeed.value = 1; demoSeat.value = 0; demoAuto.value = true;
+  base = Date.now(); anchor = Date.now(); demoSpeed.value = 1; demoSeat.value = TABLE; demoAuto.value = true;
   setClockFn(now);
+  // like a real evening: the table opens the game, then you and the bots join from your phones
+  table = { id: 'demo-table', name: 'table', view: null, chat: [], busy: null, said: new Set() };
   devs = [{ id: deviceId(), name: hostName, view: null, chat: [], busy: null, said: new Set() }];
   room = new Room({ now, send: (id, m) => route(id, m) });
   connectLocal(DEMO_CODE, hostName, (onMsg) => {
@@ -67,8 +71,10 @@ export function startDemo(hostName: string, bots = 3) {
       close: () => { /* stopDemo owns teardown */ }
     };
   });
-  room.open(devs[0].id, hello(devs[0], true));
+  room.open(table.id, hello(table, true));
+  room.open(devs[0].id, hello(devs[0]));
   for (let i = 0; i < bots; i++) addBot();
+  demoSeats.value = devs.map((x, seat) => ({ seat, name: x.name }));
   timer = setInterval(() => room?.tick(), 250);
   demoActive.value = true;
 }
@@ -85,18 +91,18 @@ export function stopDemo() {
   if (timer) clearInterval(timer);
   timer = null;
   devs.forEach((d) => d.busy && clearTimeout(d.busy));
-  devs = []; room = null; deliver = null;
+  devs = []; table = null; room = null; deliver = null;
   setClockFn(null);
   demoActive.value = false; demoSeats.value = []; demoSheet.value = false;
   disconnect();
 }
 
-/** Look at the game through another seat's phone (and play it by hand). */
+/** Look at the game through the table or another seat's phone (and play it by hand). */
 export function viewAs(seat: number) {
-  if (!room || !devs[seat] || seat === demoSeat.value) return;
+  const d = seat === TABLE ? table : devs[seat];
+  if (!room || !d || seat === demoSeat.value) return;
   demoSeat.value = seat;
   resetLocalView();
-  const d = devs[seat];
   if (d.busy) { clearTimeout(d.busy); d.busy = null; }
   room.open(d.id, hello(d));       // re-sends welcome, chat history and a fresh view to that seat
   devs.forEach((x, i) => i !== seat && schedule(x));
@@ -166,7 +172,7 @@ function playTurn(d: Dev, v: View, seat: number, doIt: (a: { type: string } & Re
     if (h.oocDue && h.target !== null) once('ooc' + h.ts, () => doIt({ type: 'chat', to: h.target, text: `(${line('ooc', seat)})` }));
   }
   // answer the last message YOU sent that reached us, once, in character (bots never chat among themselves)
-  const you = demoSeat.value;
+  const you = demoSeat.value === TABLE ? 0 : demoSeat.value;
   const last = [...d.chat].reverse().find((m) => m.kind === 'msg' && m.from === you && !m.deleted && !m.ooc);
   if (last && !d.said.has('re' + last.id) && (last.to === seat || Math.random() < 0.45)) {
     d.said.add('re' + last.id);
@@ -198,4 +204,10 @@ function toneWav(seat: number): string {
   for (let i = 0; i < n; i++) data[44 + i] = 128 + Math.round(24 * Math.sin((2 * Math.PI * f * i) / rate) * Math.min(1, i / 400, (n - i) / 400));
   let bin = ''; data.forEach((b) => (bin += String.fromCharCode(b)));
   return btoa(bin);
+}
+
+/** Act as any demo seat without switching the screen (used by tests and scripted walkthroughs). */
+export function demoDo(seat: number, a: { type: string } & Record<string, unknown>) {
+  const d = seat === TABLE ? table : devs[seat];
+  if (room && d) room.receive(d.id, { t: 'do', a });
 }

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
-import { view, send, vmItems, unlockAudio } from '../net';
+import { view, send, vmItems, unlockAudio, serverNow } from '../net';
 import { rules } from '../../shared/rules';
-import { t, Btn, Panel } from './common';
+import { t, Btn, Panel, remainingMs } from './common';
 import { charName } from '../content';
 
 // ---- minimal YouTube IFrame API wrapper (loaded only on the sound device) ----
@@ -27,13 +27,19 @@ function loadApi(): Promise<any> {
 export const yt = { player: null as any, ready: false, failed: false, listeners: new Set<() => void>() };
 const notify = () => yt.listeners.forEach((f) => f());
 
-/** Called from a user tap on the sound device. Starts the video and tells the server. */
+/** Called from a user tap on the table. Starts the video inside the tap (browsers need one) and tells the server. */
 export function startAudio(offsetSec: number) {
   unlockAudio();
   if (yt.player && yt.ready && !yt.failed) {
     try { yt.player.seekTo(offsetSec, true); yt.player.playVideo(); send({ type: 'startGame', source: 'video' }); return; } catch { /* fall through */ }
   }
   send({ type: 'startGame', source: 'manual' });
+}
+/** Pause/resume from the table. Inside the tap so the browser lets the video play again; the sync loop keeps it in step. */
+export function toggleClock(running: boolean) {
+  unlockAudio();
+  if (running) { try { yt.player?.pauseVideo(); } catch { /* ignore */ } send({ type: 'pauseClock' }); }
+  else { try { if (yt.ready && !yt.failed) yt.player?.playVideo(); } catch { /* ignore */ } send({ type: 'resumeClock' }); }
 }
 export function setVideoVolume(v: number) { try { yt.player?.setVolume(v); } catch { /* ignore */ } }
 
@@ -75,18 +81,19 @@ export function SoundPlayer({ big }: { big?: boolean }) {
     return () => { dead = true; try { yt.player?.destroy(); } catch { /* ignore */ } yt.player = null; yt.ready = false; };
   }, []);
 
-  // report the video position to the server while the video drives the clock
+  // the game clock is the source of truth: the video follows it (plays, pauses, and seeks back when it drifts)
   useEffect(() => {
     const i = setInterval(() => {
       const vv = view.value;
-      if (!vv || !yt.player || !yt.ready || vv.clock.source !== 'video') return;
-      if (vv.phase !== 'play' && vv.phase !== 'ready') return;
+      if (!vv || !yt.player || !yt.ready || yt.failed || vv.phase !== 'play') return;
       try {
-        const st = yt.player.getPlayerState();
-        if (vv.phase === 'ready') return;
-        send({ type: 'reportVideo', sec: yt.player.getCurrentTime(), playing: st === 1 });
+        const playing = yt.player.getPlayerState() === 1;
+        if (!vv.clock.running) { if (playing) yt.player.pauseVideo(); return; }
+        const want = vv.settings.videoOffsetSec + (vv.clock.lengthMs - remainingMs(vv, serverNow())) / 1000;
+        if (Math.abs(yt.player.getCurrentTime() - want) > 2) yt.player.seekTo(want, true);
+        if (!playing) yt.player.playVideo();
       } catch { /* ignore */ }
-    }, 2000);
+    }, 1000);
     return () => clearInterval(i);
   }, []);
 

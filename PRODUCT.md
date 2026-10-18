@@ -10,7 +10,7 @@ web
 
 A small group of friends (3–5 players, one of them the host) playing the tabletop game *Alice Is Missing* together, each on their own smartphone, in the same room, usually in the dark. The game is played in silence: all communication is by text message. Players are in character, under time pressure (90 minutes), and cannot look away from the table for long.
 
-The host is the owner of the physical game. They also run the session: they create the room, pick the mode, hold the clock and recover the game if something goes wrong. An optional shared tablet in the middle of the table shows the common state.
+A tablet or PC in the middle of the table is always present: it opens the game, shows the QR code the phones scan, plays the soundtrack video, runs the 90-minute clock (start, pause, resume) and shows the shared state and clue reminders. One of the players, chosen on the table in the lobby, is the **facilitator**: they play Charlie and have the admin powers (advancing phases, host tools) from their phone. The owner of the physical game unlocks the content on the table with the group passphrase.
 
 ## Product Purpose
 
@@ -25,7 +25,7 @@ Not a general chat app and not a rules reference: a purpose-built table companio
 ## Operating Context
 
 - Phones in portrait, held one-handed, in a dim room, mostly in a silent game.
-- The host's phone runs the game server in its browser (Firebase transport); if it closes or loses signal, the others wait and the game resumes from a saved snapshot when the same device returns.
+- The table (tablet/PC) runs the game server in its browser (Firebase transport); if it closes or loses signal, the phones wait and the game resumes from a saved snapshot when the same device returns, with the clock paused at the last save. The game clock is the source of truth and the video follows it.
 - Optional local relay for a Wi-Fi network without internet.
 - Hosting: GitHub Pages (static site) plus Firebase Realtime Database. Every push to `main` redeploys.
 - The game text and posters are encrypted in `public/pack` and unlocked with a group passphrase the host types once; friends join through a QR code or link that carries the key.
@@ -35,12 +35,14 @@ Not a general chat app and not a rules reference: a purpose-built table companio
 - Full session flow: safety tools, intro and poster, characters, drives, introductions, relationships, voicemails, starting hunches, clue dealing, 90-minute game, final messages, voicemail playback, debrief.
 - Chat: group and private conversations, quoted replies, deletion of one's own messages, "typing" indicator, in-character names, rule-driven chat locks.
 - Safety: X card, lines and veils added at any time; lines and veils can be removed during the safety phase.
-- Host tools: pause/resume the clock, set the clock to a given time, nudge players, reassign the ten, end or delete the game.
+- Table: start/pause/resume the clock with the music, clue timeline and reminders, revealed cards, safety items, player status; delete the game.
+- Facilitator tools (phone): advance phases, pause/resume and set the clock, nudge players, reassign the ten, end or delete the game.
+- Host demo: a whole game on one device (table view, your phone as facilitator, bot players, sped-up clock).
 - UI in Italian and English; card text in Italian with an unofficial English translation, always labelled as such.
 - Private use only: no public accounts, no analytics, no payments. The app code contains no game text.
 - Phone screens must not need page scrolling during play; the phone keyboard must stay open while chatting.
 - Dark theme only.
-- Undecided: sound source and video availability vary per session (host's device or shared tablet; video may be unavailable, in which case the clock runs manually).
+- If the video cannot load, the clock still runs on the table without music.
 
 ## Brand Commitments
 

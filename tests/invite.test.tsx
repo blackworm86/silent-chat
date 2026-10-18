@@ -72,13 +72,13 @@ maybe('invite links: only the host types the passphrase', () => {
     location.hash = '#/';
     render(<App />);
     const input = (await waitFor(() => { const el = document.querySelector('input[type=password]'); if (!el) throw new Error('no input'); return el; })) as HTMLInputElement;
-    expect(screen.getByText(/Host only/)).toBeTruthy();
+    expect(screen.getByText(/Owner only/)).toBeTruthy();
     fireEvent.input(input, { target: { value: PASS } });
     const btn = screen.getByText('Unlock') as HTMLButtonElement;
     await waitFor(() => expect(btn.disabled).toBe(false));            // the button enables once something is typed
     fireEvent.click(btn);
     await waitFor(() => expect(content.value).not.toBeNull(), { timeout: 5000 });
-    await screen.findByText('Create a game');
+    await screen.findByText('Start a game on this tablet/PC');
   });
 
   it('the invite link built for the QR carries the host key and round-trips', () => {

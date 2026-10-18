@@ -120,15 +120,14 @@ export function Shell({ v }: { v: View }) {
         <>
           <header class="topbar">
             <div><h1 class="title">{t(('phase_' + v.phase) as keyof typeof dict.en)}</h1>{demoActive.value
-              ? <button class="demo-sub" onClick={() => { demoSheet.value = true; }}><FlaskConical size={13} aria-hidden="true" />{t('demoBadge')}{demoSeat.value !== 0 && <> · {demoSeats.value[demoSeat.value]?.name}</>}<ChevronDown size={14} aria-hidden="true" /></button>
+              ? <button class="demo-sub" onClick={() => { demoSheet.value = true; }}><FlaskConical size={13} aria-hidden="true" />{t('demoBadge')}{demoSeats.value[demoSeat.value] && <> · {demoSeats.value[demoSeat.value].name}</>}<ChevronDown size={14} aria-hidden="true" /></button>
               : <div class="sub num">{t('room')} {v.code}</div>}</div>
             <div class="topbar-end">
               {showX && <button class="xbtn" aria-label={t('xCard')} onClick={() => send({ type: 'safety', kind: 'x', text: '' })}>X</button>}
               <button class="icon-btn" aria-label={t('menu')} onClick={() => setSheet('menu')}><Menu size={22} /></button>
             </div>
           </header>
-          {isFirebase() && !demoActive.value && v.me.isHost && ['lobby', 'ready'].includes(v.phase) && <div class="hostnote"><Monitor size={18} style={{ flex: 'none', marginTop: '1px' }} /><span>{t('hostKeepOpen')}</span></div>}
-          {isFirebase() && !v.me.isHost && hostOffline.value && <div class="hostnote warn"><WifiOff size={18} style={{ flex: 'none', marginTop: '1px' }} /><span>{t('hostOffline')}</span></div>}
+          {isFirebase() && hostOffline.value && <div class="hostnote warn"><WifiOff size={18} style={{ flex: 'none', marginTop: '1px' }} /><span>{t('hostOffline')}</span></div>}
           <main class={`main ${noBar ? 'no-bar' : ''} ${dock === 'top' ? 'with-dock' : ''}`}><Screen v={v} /></main>
         </>
       )}

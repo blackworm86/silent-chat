@@ -29,11 +29,13 @@ describe('local relay over real WebSockets', () => {
     server = await createServer(0);
     const port = (server.address() as AddressInfo).port;
     const a = new Client('a', port, 'ABCD'), b = new Client('b', port, 'ABCD'), c = new Client('c', port, 'ABCD'), tab = new Client('tab', port, 'ABCD');
-    await a.open('player', true);
-    await a.until(() => a.view?.phase === 'lobby');
-    expect(a.view!.me.isHost).toBe(true);
-    await b.open(); await c.open(); await tab.open('table');
+    await tab.open('table', true);
+    await tab.until(() => tab.view?.phase === 'lobby');
+    await a.open(); await a.until(() => a.view?.players.length === 1);
+    await b.open(); await c.open();
     await a.until(() => a.view!.players.length === 3 && a.view!.tableConnected);
+    tab.do({ type: 'setFacilitator', seat: 0 });
+    await a.until(() => a.view!.me.isHost);
     a.do({ type: 'next' });
     await b.until(() => b.view?.phase === 'safety');
     for (const x of [a, b, c]) x.do({ type: 'consent' });
@@ -70,11 +72,11 @@ describe('local relay: host deletes the game', () => {
     server ??= await createServer(0);
     const port = (server.address() as AddressInfo).port;
     const a = new Client('ha', port, 'DELE'), b = new Client('hb', port, 'DELE');
-    await a.open('player', true); await a.until(() => a.view?.phase === 'lobby');
-    await b.open(); await a.until(() => a.view!.players.length === 2);
+    await a.open('table', true); await a.until(() => a.view?.phase === 'lobby');
+    await b.open(); await a.until(() => a.view!.players.length === 1);
     b.do({ type: 'deleteRoom' });
     await b.until(() => b.msgs.some((m) => m.t === 'err'));
-    expect(rooms.has('DELE')).toBe(true);                // not the host: refused
+    expect(rooms.has('DELE')).toBe(true);                // not the table or the facilitator: refused
     a.do({ type: 'deleteRoom' });
     await b.until(() => b.msgs.some((m) => m.t === 'err' && m.code === 'deleted'));
     await a.until(() => !rooms.has('DELE'));

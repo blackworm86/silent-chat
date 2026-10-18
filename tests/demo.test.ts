@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { startDemo, stopDemo, setDemoSpeed, viewAs, demoSeats } from '../src/client/demo';
+import { startDemo, stopDemo, setDemoSpeed, viewAs, demoSeats, TABLE } from '../src/client/demo';
 import { view, chat, send, errors, myGames, serverNow } from '../src/client/net';
 
 afterEach(() => { stopDemo(); vi.useRealTimers(); });
@@ -17,8 +17,14 @@ describe('host demo', () => {
     startDemo('Host');
     await wait(10);
     expect(view.value?.code).toBe('DEMO');
+    expect(view.value?.me.role).toBe('table');                  // the demo opens on the table, like a real evening
     expect(view.value?.players.length).toBe(4);
     expect(demoSeats.value.map((s) => s.name)).toEqual(['Host', 'Ada', 'Bruno', 'Celia']);
+    send({ type: 'setFacilitator', seat: 0 });                   // tapped on the table
+    await wait(10);
+    viewAs(0);
+    await wait(10);
+    expect(view.value?.me.isHost).toBe(true);
 
     await next('safety');
     send({ type: 'consent' });
@@ -37,7 +43,12 @@ describe('host demo', () => {
     send({ type: 'ready', value: true });
     await next('ready');
 
-    send({ type: 'startGame', source: 'video' });   // what the sound dock sends
+    viewAs(TABLE);
+    await wait(10);
+    send({ type: 'startGame', source: 'video' });   // what the table's start button sends
+    await wait(10);
+    expect(view.value?.timeline?.length).toBeGreaterThan(5);
+    viewAs(0);
     await wait(10);
     expect(view.value?.phase).toBe('play');
     expect(view.value?.clock.source).toBe('manual');
@@ -68,6 +79,9 @@ describe('host demo', () => {
     viewAs(2);
     await wait(10);
     expect(view.value?.me.seat).toBe(2);
+    viewAs(TABLE);
+    await wait(10);
+    send({ type: 'setFacilitator', seat: 0 });
     expect(view.value?.me.isHost).toBe(false);
     viewAs(0);
     await wait(10);

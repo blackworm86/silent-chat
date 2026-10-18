@@ -26,7 +26,7 @@ export function Playback({ v }: { v: View }) {
   return (
     <>
       <Panel amber><h2>{t('voicemailsTitle')}</h2><p>{t('playbackHint')}</p></Panel>
-      {v.me.isSound ? <VoicemailPlayer /> : <Muted>{v.settings.soundDevice === 'table' ? t('listenTable') : t('listenHost')}</Muted>}
+      {v.me.isSound ? <VoicemailPlayer /> : <Muted>{t('listenTable')}</Muted>}
       <Next v={v} label={t('toDebrief')} />
     </>
   );

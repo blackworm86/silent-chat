@@ -117,7 +117,7 @@ export function connectLocal(room: string, name: string, open: (deliver: (m: Ser
 /** Demo seat switch: forget what the previous seat saw before the new one's state arrives. */
 export function resetLocalView() { batch(() => { view.value = null; chat.value = []; vmItems.value = null; typingMap.value = {}; }); }
 
-// ---------------- games this device hosts (for "Your games" on the home screen) ----------------
+// ---------------- games this device runs as the table (for "Your games" on the home screen) ----------------
 export interface MyGame { code: string; at: number }
 const GAMES_KEY = 'aim.games';
 export const myGames = signal<MyGame[]>(readGames());
@@ -158,7 +158,7 @@ export async function deleteSession(code: string): Promise<void> {
       const done = () => { clearTimeout(timer); try { sock.close(); } catch { /* ignore */ } resolve(); };
       const timer = setTimeout(done, 4000);
       sock.onopen = () => {
-        sock.send(JSON.stringify({ t: 'hello', room: code, deviceId: deviceId(), role: 'player', create: false, name: '' }));
+        sock.send(JSON.stringify({ t: 'hello', room: code, deviceId: deviceId(), role: 'table', create: false, name: '' }));
         sock.send(JSON.stringify({ t: 'do', a: { type: 'deleteRoom' } }));
       };
       sock.onmessage = (ev) => { try { const m = JSON.parse(String(ev.data)); if (m.t === 'err' && (['deleted', 'no_room'].includes(m.code) || m.msg === 'host_only')) done(); } catch { /* ignore */ } };
@@ -171,8 +171,8 @@ export async function deleteSession(code: string): Promise<void> {
 // ---------------- shared message handling ----------------
 function onMsg(m: ServerMsg) {
   switch (m.t) {
-    case 'welcome': conn.value = 'open'; if (m.isHost && params?.role === 'player' && !params.local) rememberGame(params.room); break;
-    case 'view': view.value = m.v; if (m.v.phase === 'done' && m.v.me.isHost && !params?.local) forgetGame(m.v.code); break;
+    case 'welcome': conn.value = 'open'; if (params?.role === 'table' && !params.local) rememberGame(params.room); break;
+    case 'view': view.value = m.v; if (m.v.phase === 'done' && m.v.me.role === 'table' && !params?.local) forgetGame(m.v.code); break;
     case 'chatHistory': chat.value = m.ms; break;
     case 'chat': if (!chat.value.some((x) => x.id === m.m.id)) chat.value = [...chat.value, m.m]; break;
     case 'chatUpdate': chat.value = chat.value.map((x) => (x.id === m.m.id ? m.m : x)); break;

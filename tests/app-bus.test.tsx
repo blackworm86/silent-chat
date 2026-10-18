@@ -25,12 +25,15 @@ maybe('real <App/> in Firebase mode (host browser = server), in-memory bus', () 
     lang.value = 'en';
     localStorage.setItem('aim.name', 'Giulia');
     localStorage.setItem('aim.pass', 'friends-pass');
-    location.hash = '#/r/ABC234/new';
+    // the table (tablet/PC) opens the game and runs the server; Giulia's phone joins through the UI
+    const tbl = await connectBus(bus, { code: 'ABC234', role: 'table', create: true, name: 'table', deviceId: 'tbl', pass: 'friends-pass', storage: { get: () => null, set: () => {} },
+      onMsg: () => {}, onFatal: () => {} });
+    location.hash = '#/r/ABC234';
 
     render(<App />);
     await screen.findByText('ABC234', {}, { timeout: 5000 });
-    expect(view.value!.me.isHost).toBe(true);
-    expect(await screen.findByText(/You are the game server/)).toBeTruthy();       // host reminder is shown in Firebase mode
+    tbl!.send({ t: 'do', a: { type: 'setFacilitator', seat: 0 } });
+    await waitFor(() => expect(view.value!.me.isHost).toBe(true), { timeout: 5000 });
 
     const remotes: { v: View | null; w: any }[] = [];
     for (const id of ['bea', 'carlo']) {
@@ -53,7 +56,7 @@ maybe('real <App/> in Firebase mode (host browser = server), in-memory bus', () 
     await waitFor(() => expect(view.value!.phase).toBe('intro'), { timeout: 5000 });
     await screen.findByText(/Silent Falls/);
     cleanup();
-    remotes.forEach((r) => r.w.close());
+    remotes.forEach((r) => r.w.close()); tbl!.close();
     await new Promise((r) => setTimeout(r, 150));     // let queued UI effects finish before the simulated browser is torn down
   }, 30000);
 });

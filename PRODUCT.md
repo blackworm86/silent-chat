@@ -71,4 +71,4 @@ Not a general chat app and not a rules reference: a purpose-built table companio
 
 ---
 
-*Written from the repository, `docs/SPEC.md` and the owner's feedback during development; not yet reviewed line by line with the owner. Items under "Undecided" are open.*
+*Written from the repository, `docs/SPEC.md` and the owner's feedback during development; confirmed by the owner (platform: web). Items under "Undecided" are open.*

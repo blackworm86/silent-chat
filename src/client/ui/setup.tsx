@@ -121,17 +121,11 @@ export function Lobby({ v }: { v: View }) {
   const saveName = () => { if (name.trim()) send({ type: 'setName', name: name.trim() }); setEditing(false); };
   return (
     <>
-      <section class="invite">
-        <Qr text={inviteUrl(v.code, 'r')} />
-        <div class="invite-side">
-          <h2>{t('inviteFriends')}</h2>
-          <div class="code" aria-label={`${t('roomCode')} ${v.code.split('').join(' ')}`}>{v.code}</div>
-          <Btn small kind="ghost" icon={shared ? <Check size={18} /> : <Share2 size={18} />} onClick={share}>{shared ? t('copied') : t('share')}</Btn>
-        </div>
-      </section>
-      <p class="faint small center-text invite-note">
-        <KeyRound size={13} style={{ verticalAlign: '-2px', marginRight: '4px' }} />{t('inviteSecretNote')}
-      </p>
+      {/* the QR lives on the table; the phone only needs a way to pass the link on */}
+      <div class="row between nowrap">
+        <span class="code small-code num" aria-label={`${t('roomCode')} ${v.code.split('').join(' ')}`}>{v.code}</span>
+        <Btn small kind="ghost" full={false} icon={shared ? <Check size={18} /> : <Share2 size={18} />} onClick={share}>{shared ? t('copied') : t('share')}</Btn>
+      </div>
 
       <Section title={`${t('players')} · ${v.players.length}/5`}>
         {editing && (
@@ -350,7 +344,6 @@ export function Drives({ v }: { v: View }) {
           </div>
         </Section>
       )}
-      <Muted small>{t('drivePrivate')}</Muted>
       <PhaseBar v={v} />
     </>
   );
@@ -486,7 +479,6 @@ export function Voicemail({ v }: { v: View }) {
         {ch && <><Label>{t('voicemailPrompt')}</Label><p>{tx(ch.voicemailPrompt)}</p><Label>{t('secret')}</Label><p>{tx(ch.secret)}</p></>}
       </Panel>
       {digital ? <Recorder sent={self.vm} /> : <Muted>{t('vmPhysical')}</Muted>}
-      <Muted small>{t('timerBreak')}</Muted>
       <PhaseBar v={v} blocked={digital && !v.players.every((p) => p.vm)} status={`${count(v, (p) => p.vm)} ${t('done')}`} />
     </>
   );
@@ -555,7 +547,6 @@ export function Ready({ v }: { v: View }) {
       <Panel amber>
         <h2>{t('startTitle')}</h2>
         <p>{t('startHint')}</p>
-        <Muted small>{t('soundTableHint')}</Muted>
       </Panel>
       <ActionBar>
         {isSound && <Btn icon={<Play size={20} />} onClick={() => startAudio(v.settings.videoOffsetSec)}>{t('startGame')}</Btn>}

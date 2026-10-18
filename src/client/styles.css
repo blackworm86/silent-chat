@@ -283,18 +283,21 @@ button.list-row:active { background: var(--ink-2); }
 
 /* ---------- play shell ---------- */
 .play { position: fixed; inset: 0; display: flex; flex-direction: column; max-width: 560px; margin: 0 auto; background: var(--ink-0); }
-.play-head { padding: calc(var(--safe-t) + var(--s2)) var(--s2) var(--s2) var(--s4); background: var(--ink-0); }
+.play-head { padding: calc(var(--safe-t) + var(--s1)) var(--s1) var(--s2) var(--s4); background: var(--ink-0); }
 .play-head .row { gap: var(--s2); }
-.clock { font: 600 40px/1 var(--font-ui); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.clock { font: 600 34px/1 var(--font-ui); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 .clock.hot { color: var(--danger); }
-.next-clue { text-align: right; line-height: 1.2; }
-.next-clue b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; color: var(--accent); }
-.next-clue span { font-size: 12px; color: var(--fg-3); }
-.bar { position: relative; height: 4px; background: var(--ink-2); border-radius: 2px; margin: var(--s3) var(--s2) 0 0; }
+.next-clue { display: inline-flex; align-items: center; gap: 4px; color: var(--fg-3); margin-right: var(--s1); }
+.next-clue b { font-size: 17px; color: var(--accent); }
+.paused-tag { font-size: 12px; font-weight: 600; color: var(--accent); }
+.bar { position: relative; height: 4px; background: var(--ink-2); border-radius: 2px; margin: var(--s2) var(--s3) 0 0; }
 .bar .fill { position: absolute; inset: 0 auto 0 0; background: var(--fg-2); border-radius: 2px; }
 .bar .tick { position: absolute; top: -3px; width: 2px; height: 10px; border-radius: 1px; background: var(--accent); margin-left: -1px; }
 .bar .tick.passed { background: var(--ink-3); }
 .lockbar { margin-top: var(--s2); padding: var(--s2) var(--s3); border-radius: var(--r-s); background: var(--danger-soft); color: var(--danger); font-weight: 600; font-size: 14px; display: flex; gap: var(--s2); align-items: center; }
+.clue-alert { flex: none; border: 0; min-height: calc(var(--safe-t) + 52px); padding: var(--safe-t) var(--s4) 0; background: var(--accent); color: var(--accent-ink); display: flex; align-items: center; gap: var(--s2); font: 650 17px/1.2 var(--font-ui); text-align: left; animation: rise .35s var(--ease); }
+.clue-alert span { flex: 1; }
+.clue-alert + .play-head { padding-top: var(--s1); }
 .clue-banner { margin: 0 var(--s4) var(--s2); min-height: 52px; border-radius: var(--r-m); border: 0; background: var(--accent); color: var(--accent-ink); font-weight: 650; display: flex; align-items: center; gap: var(--s2); padding: 0 var(--s4); text-align: left; animation: rise .35s var(--ease); }
 .clue-banner span { flex: 1; }
 @keyframes rise { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
@@ -322,10 +325,19 @@ button.list-row:active { background: var(--ink-2); }
 .chat-view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .chat-view.inline { height: 62dvh; flex: none; background: var(--ink-1); border-radius: var(--r-l); overflow: hidden; }
 .chat-view.inline .composer { background: var(--ink-1); }
-.convs { display: flex; gap: var(--s2); overflow-x: auto; padding: var(--s3) var(--s4); scrollbar-width: none; flex: none; }
+.convs { display: flex; gap: var(--s1); overflow-x: auto; padding: var(--s2) var(--s3) var(--s1); scrollbar-width: none; flex: none; }
 .convs::-webkit-scrollbar { display: none; }
-.convs .chip { min-height: 38px; font-size: 15px; }
-.thread { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: var(--s2); padding: var(--s2) var(--s4) var(--s3); }
+/* conversations as avatar bubbles: who has written to you is visible at a glance */
+.conv { appearance: none; border: 0; background: none; color: var(--fg-3); flex: 1 0 60px; max-width: 76px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 2px 0; font: 600 12px/1.2 var(--font-ui); }
+.conv-face { position: relative; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; }
+.conv-face .avatar { width: 44px !important; height: 44px !important; }
+.conv.on { color: var(--fg); }
+.conv.on .conv-face { box-shadow: 0 0 0 2px var(--accent); }
+.conv-all { display: grid; place-items: center; border-radius: 50%; background: var(--ink-2); color: var(--fg); }
+.conv-name { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conv .badge-n { position: absolute; top: -2px; right: -4px; min-width: 20px; height: 20px; font-size: 12px; box-shadow: 0 0 0 2px var(--ink-0); }
+.conv .badge-n.at { background: var(--me); color: #fff; }
+.thread { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: var(--s2); padding: var(--s2) var(--s3) var(--s3); }
 .thread-empty { margin: auto; max-width: 280px; text-align: center; color: var(--fg-3); display: flex; flex-direction: column; gap: var(--s2); align-items: center; font-size: 14px; }
 .thread-empty b { color: var(--fg-2); font-weight: 600; font-size: 15px; }
 .msgrow { display: flex; gap: var(--s2); align-items: flex-end; max-width: 100%; margin-top: -5px; }
@@ -335,7 +347,13 @@ button.list-row:active { background: var(--ink-2); }
 .msgcol { display: flex; flex-direction: column; min-width: 0; max-width: 78%; }
 .msgrow.mine .msgcol { align-items: flex-end; }
 .sender { font-size: 12px; color: var(--fg-3); margin: 0 0 2px 12px; }
-.bubble { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; touch-action: pan-y; padding: 8px 12px; border-radius: 18px; background: var(--ink-2); white-space: pre-wrap; word-break: break-word; line-height: 1.4; }
+.bubble { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; touch-action: pan-y; padding: 9px 13px; border-radius: 20px; background: var(--ink-2); white-space: pre-wrap; word-break: break-word; font-size: 17px; line-height: 1.4; }
+.bubble.at-me { box-shadow: inset 0 0 0 2px var(--accent-line); }
+.mention { font-weight: 650; color: var(--accent); }
+.bubble.out .mention { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.mention.me { background: var(--accent-soft); border-radius: 4px; padding: 0 2px; }
+.mentions { flex: none; display: flex; gap: var(--s2); overflow-x: auto; padding: var(--s2) var(--s3) 0; scrollbar-width: none; background: var(--ink-0); }
+.mention-pick { appearance: none; border: 0; flex: none; min-height: 44px; padding: 0 var(--s3) 0 6px; border-radius: var(--r-pill); background: var(--ink-2); color: var(--fg); display: inline-flex; align-items: center; gap: var(--s2); font: 600 15px/1 var(--font-ui); }
 .bubble.out { background: var(--me); color: #fff; }
 .bubble.in { }
 .bubble.out:not(.f) { border-top-right-radius: 5px; }
@@ -354,11 +372,11 @@ button.list-row:active { background: var(--ink-2); }
 .ctx button + button { box-shadow: inset 0 1px 0 var(--hair); }
 .ctx button.danger { color: var(--danger); }
 /* typing: free the screen like a messaging app (clock + conversation + composer only) */
-.play.composing .tabbar, .play.composing .clue-banner, .play.composing .bar, .play.composing .next-clue, .play.composing .lock-note { display: none; }
+.play.composing .tabbar, .play.composing .bar, .play.composing .lock-note { display: none; }
 .play.composing .play-head { padding-top: calc(var(--safe-t) + var(--s1)); padding-bottom: var(--s1); }
-.play.composing .clock { font-size: 24px; }
-.play.composing .safety-btn { display: none; }   /* lines & veils fold away while typing; the X never does */
-.play.composing .convs { padding-top: var(--s2); padding-bottom: var(--s2); }
+.play.composing .clock { font-size: 22px; }
+.play.composing .conv-name { display: none; }
+.play.composing .conv-face, .play.composing .conv-face .avatar { width: 36px !important; height: 36px !important; }
 .bubble.ooc { font-style: italic; color: var(--fg-2); }
 .bubble.out.ooc { color: oklch(0.92 0.03 258); }
 .sysmsg { align-self: center; text-align: center; font-size: 13px; color: var(--fg-2); padding: 4px var(--s3); border-radius: var(--r-pill); background: var(--ink-1); max-width: 90%; }
@@ -439,7 +457,7 @@ audio { width: 100%; }
 
 @media (prefers-reduced-motion: reduce) {
   /* no movement, but state changes still read: moving entrances become short fades */
-  .sheet, .toast, .clue-banner, .ctx, .sheet-back, .t-remind { animation: fade .16s ease-out !important; }
+  .sheet, .toast, .clue-banner, .clue-alert, .ctx, .sheet-back, .t-remind { animation: fade .16s ease-out !important; }
   .typing i { animation-duration: 2.4s; }
   .pulse { animation: blink 2.4s infinite; }
   .btn:active:not(:disabled) { transform: none; }
@@ -480,3 +498,5 @@ audio { width: 100%; }
 .t-clue.flipped { background: transparent; box-shadow: inset 0 0 0 1px var(--hair); }
 .t-clue.flipped b, .t-clue.flipped span { color: var(--fg-3); }
 @media (max-width: 640px) { .t-join { grid-template-columns: 1fr; justify-items: center; } .t-join .code { text-align: center; } }
+.demo-btn { color: var(--fg-3); }
+.code.small-code { font-size: 28px; text-align: left; text-indent: 0; letter-spacing: 0.14em; }

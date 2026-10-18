@@ -19,8 +19,8 @@ export function DemoRoom() {
   return (
     <>
       {!v ? <Connecting /> : demoSeat.value === TABLE ? <TableBody v={v} noSound /> : <Shell v={v} />}
-      {/* phone setup screens carry the demo button in the top bar; the table and the play screen have none, so it floats */}
-      {v && (v.phase === 'play' || demoSeat.value === TABLE) && (
+      {/* phone screens carry the demo button in their top bar or play header; the table has none, so it floats */}
+      {v && demoSeat.value === TABLE && (
         <button class="demo-pill" onClick={() => { demoSheet.value = true; }} aria-label={t('demoTitle')}>
           <FlaskConical size={14} aria-hidden="true" />{t('demoBadge')}
           <span class="demo-who">{demoSeat.value === TABLE ? t('demoTable') : demoSeats.value[demoSeat.value]?.name}</span>

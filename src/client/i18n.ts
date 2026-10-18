@@ -1,5 +1,9 @@
 // UI strings (Italian / English). Game CARD text is NOT here: it lives in the encrypted content pack.
 const en = {
+  "clueAlert": "Clue {n}: reveal it now",
+  "toastMention": "{name} mentioned you",
+  "oocShort": "Out of character: (in parentheses).",
+  "unread": "unread",
   "demoTable": "Table",
   "tableStatusAlice": "is Alice",
   "tableStatusMuted": "muted",
@@ -394,6 +398,10 @@ const en = {
 
 export type Key = keyof typeof en;
 const it: Record<Key, string> = {
+  "clueAlert": "Indizio {n}: giralo ora",
+  "toastMention": "{name} ti ha menzionato",
+  "oocShort": "Fuori personaggio: (tra parentesi).",
+  "unread": "non letti",
   "demoTable": "Tavolo",
   "tableStatusAlice": "è Alice",
   "tableStatusMuted": "silenziato",

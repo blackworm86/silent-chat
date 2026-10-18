@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import {
   Menu, Lock, MicOff, Hourglass, Flashlight, CarFront, Dice5, Coins, Mail, Smartphone, Layers, MessageCircle, LayoutGrid,
-  NotebookPen, Volume2, SendHorizontal, ShieldAlert, Trash2, Undo2, Search, Pause, Play, Bell, ChevronRight, Sparkles, Reply, X
+  NotebookPen, Volume2, SendHorizontal, ShieldAlert, Trash2, Undo2, Search, Pause, Play, Bell, ChevronRight, Sparkles, Reply, X, Users, FlaskConical
 } from 'lucide-preact';
-import { view, send, chat, typingMap, sendTyping, toasts, dismissToast, errors, dismissError } from '../net';
+import { view, send, chat, typingMap, sendTyping, toasts, dismissToast, errors, dismissError, alertDevice } from '../net';
 import { C, tx, clueCard, clueVariants, cardName, searchText, charName, fmtClock, dayWord } from '../content';
 import { t, Btn, Panel, Label, Muted, Avatar, seatName, Countdown, useRemaining, useNow, Modal, useLocalState, UnofficialTag, showUnofficial, Section, ListRow, ConfirmSheet, TextLink } from './common';
 import { soundSheet } from './sound';
+import { demoActive, demoSheet } from '../demo';
 import { DealPlan } from './setup';
 import { rules } from '../../shared/rules';
 import type { View, HandView, CardRef, ChatMsg } from '../../shared/types';
@@ -15,7 +16,7 @@ import type { View, HandView, CardRef, ChatMsg } from '../../shared/types';
 // =====================================================================
 // Clock header
 // =====================================================================
-export function ClockBar({ v, onMenu }: { v: View; onMenu?: () => void }) {
+export function ClockBar({ v, onMenu, onSafety }: { v: View; onMenu?: () => void; onSafety?: () => void }) {
   const rem = useRemaining();
   const length = v.clock.lengthMs;
   const nextTs = [...rules.settings.clueSchedule].sort((a, b) => b - a).find((ts) => ts * 60000 < rem - 500);
@@ -26,10 +27,12 @@ export function ClockBar({ v, onMenu }: { v: View; onMenu?: () => void }) {
       <div class="row nowrap between">
         <div class={`clock ${rem < 600000 ? 'hot' : ''}`} role="timer" aria-live="off">{fmtClock(rem)}</div>
         <div class="row nowrap">
-          <div class="next-clue">
-            <span>{v.clock.running ? t('nextClue') : t('paused')}</span>
-            <b>{nextTs !== undefined ? `${nextTs}:00` : '—'}</b>
+          <div class="next-clue" aria-label={`${t('nextClue')} ${nextTs ?? '—'}:00`}>
+            {v.clock.running ? <Hourglass size={14} aria-hidden="true" /> : <span class="paused-tag">{t('paused')}</span>}
+            <b class="num">{nextTs !== undefined ? `${nextTs}:00` : '—'}</b>
           </div>
+          {demoActive.value && <button class="icon-btn demo-btn" aria-label={t('demoTitle')} onClick={() => { demoSheet.value = true; }}><FlaskConical size={20} /></button>}
+          {onSafety && <button class="icon-btn" aria-label={t('addLineVeil')} onClick={onSafety}><ShieldAlert size={21} /></button>}
           {onMenu && <button class="icon-btn" aria-label={t('menu')} onClick={onMenu}><Menu size={22} /></button>}
         </div>
       </div>
@@ -286,7 +289,6 @@ export function SearchPanel({ v }: { v: View }) {
   const digital = v.settings.sources.search === 'digital';
   return (
     <Section title={t('searchDeck')}>
-      <Muted small>{t('searchHint')}</Muted>
       {digital ? <Btn kind="ghost" icon={<Search size={18} />} disabled={v.decks.searchRemaining === 0} onClick={() => send({ type: 'drawSearch' })}>{t('drawSearch')}</Btn>
         : <Btn kind="ghost" icon={<Search size={18} />} onClick={() => setGrid(true)}>{t('registerSearch')}</Btn>}
       {v.mySearch.map((s, i) => <p class="searchcard" key={i}>{searchText(s.id)}</p>)}
@@ -296,7 +298,9 @@ export function SearchPanel({ v }: { v: View }) {
 }
 
 function CardsTab({ v }: { v: View }) {
-  const hands = [...v.hands].sort((a, b) => b.ts - a.ts);
+  // newest first: a card waiting to be flipped, then revealed cards from the most recent, then the ones still to come
+  const rank = (h: HandView) => (h.status === 'unlocked' ? 0 : h.status === 'flipped' ? 1 : 2);
+  const hands = [...v.hands].sort((a, b) => rank(a) - rank(b) || (rank(a) === 2 ? b.ts - a.ts : a.ts - b.ts));
   return (
     <>
       {hands.length === 0 && <Muted>{t('noCards')}</Muted>}
@@ -321,6 +325,32 @@ export function unreadCount(v: View): number {
 }
 
 interface MenuState { m: ChatMsg; mine: boolean; x: number; y: number }
+
+/** Names people are called by in the chat (character, or Alice), longest first so "@Julia Neuman" beats "@Julia". */
+function mentionNames(v: View): { seat: number; name: string }[] {
+  return v.players.map((p) => ({ seat: p.seat, name: seatName(v, p.seat, true) })).filter((x) => x.name).sort((a, b) => b.name.length - a.name.length);
+}
+export function mentionsSeat(text: string, v: View, seat: number): boolean {
+  const name = seatName(v, seat, true);
+  return !!name && text.toLowerCase().includes('@' + name.toLowerCase());
+}
+/** Message text with every @Name highlighted; @you stands out more. */
+function MsgText({ text, v, me }: { text: string; v: View; me: number }) {
+  const names = mentionNames(v);
+  if (!text.includes('@') || !names.length) return <>{text}</>;
+  const out: (string | preact.JSX.Element)[] = [];
+  let rest = text, k = 0;
+  while (rest) {
+    const i = rest.indexOf('@');
+    if (i < 0) { out.push(rest); break; }
+    const hit = names.find((n) => rest.slice(i + 1, i + 1 + n.name.length).toLowerCase() === n.name.toLowerCase());
+    if (!hit) { out.push(rest.slice(0, i + 1)); rest = rest.slice(i + 1); continue; }
+    out.push(rest.slice(0, i));
+    out.push(<span key={k++} class={`mention ${hit.seat === me ? 'me' : ''}`}>@{rest.slice(i + 1, i + 1 + hit.name.length)}</span>);
+    rest = rest.slice(i + 1 + hit.name.length);
+  }
+  return <>{out}</>;
+}
 
 function QuoteBox({ m, v, byId }: { m: ChatMsg; v: View; byId: Map<number, ChatMsg> }) {
   if (m.replyTo == null) return null;
@@ -362,7 +392,7 @@ function Bubble({ m, v, mine, first, last, onMenu, byId }: { m: ChatMsg; v: View
       <div class="msgcol">
         {!mine && first && <div class="sender">{sender}</div>}
         <div
-          class={`bubble ${mine ? 'out' : 'in'} ${m.ooc ? 'ooc' : ''} ${m.deleted ? 'gone' : ''} ${first ? 'f' : ''} ${last ? 'l' : ''}`}
+          class={`bubble ${mine ? 'out' : 'in'} ${m.ooc ? 'ooc' : ''} ${m.deleted ? 'gone' : ''} ${first ? 'f' : ''} ${last ? 'l' : ''} ${!mine && !m.deleted && v.me.seat !== null && mentionsSeat(m.text, v, v.me.seat) ? 'at-me' : ''}`}
           tabIndex={m.deleted ? undefined : 0} aria-haspopup={m.deleted ? undefined : 'menu'}
           onContextMenu={(e) => { e.preventDefault(); open(e.clientX, e.clientY); }}
           onKeyDown={(e) => {
@@ -378,7 +408,7 @@ function Bubble({ m, v, mine, first, last, onMenu, byId }: { m: ChatMsg; v: View
           onPointerMove={(e) => { const s0 = start.current; if (s0 && (Math.abs(e.clientX - s0.x) > 8 || Math.abs(e.clientY - s0.y) > 8)) cancel(); }}
           onPointerUp={cancel} onPointerCancel={cancel} onPointerLeave={cancel}
         >
-          {m.deleted ? t('msgRemoved') : <><QuoteBox m={m} v={v} byId={byId} />{m.text}</>}
+          {m.deleted ? t('msgRemoved') : <><QuoteBox m={m} v={v} byId={byId} /><MsgText text={m.text} v={v} me={v.me.seat ?? -1} /></>}
         </div>
       </div>
     </div>
@@ -426,7 +456,7 @@ function TypingDots({ k, onShow }: { k: string; onShow: () => void }) {
   return on ? <div class="typing" aria-label={t('typing')}><i /><i /><i /></div> : null;
 }
 
-function SafetySheet({ onClose }: { onClose: () => void }) {
+export function SafetySheet({ onClose }: { onClose: () => void }) {
   const [kind, setKind] = useState<'line' | 'veil'>('line');
   const [text, setText] = useState('');
   const ok = () => { if (text.trim()) { send({ type: 'safety', kind, text: text.trim() }); onClose(); } };
@@ -448,8 +478,8 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
   const me = v.me.seat!;
   const [conv, setConv] = useState<string>('group');
   const [text, setText] = useState('');
-  const [safety, setSafety] = useState(false);
   const [menu, setMenu] = useState<MenuState | null>(null);
+  const [caret, setCaret] = useState(0);
   const [replyTo, setReplyTo] = useState<ChatMsg | null>(null);
   const inputEl = useRef<HTMLTextAreaElement>(null);
   const thread = useRef<HTMLDivElement>(null);
@@ -488,21 +518,41 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
   };
   const focusInput = () => setTimeout(() => inputEl.current?.focus(), 0);
   const switchConv = (k: string) => { setConv(k); setReplyTo(null); };
-  const unreadOf = (k: string) => chat.value.filter((m) => m.kind !== 'system' && m.from !== me && !m.deleted && convOf(m, me) === k && m.id > (readMap.value[k] ?? 0)).length;
+  const unreadIn = (k: string) => chat.value.filter((m) => m.kind !== 'system' && m.from !== me && !m.deleted && convOf(m, me) === k && m.id > (readMap.value[k] ?? 0));
+  const unreadOf = (k: string) => unreadIn(k).length;
+  const atMeIn = (k: string) => unreadIn(k).some((m) => mentionsSeat(m.text, v, me));
+  // @mentions: the word being typed at the caret, if it starts with @
+  const atWord = /(^|\s)@([^\s@]*)$/.exec(text.slice(0, caret));
+  const suggestions = atWord ? mentionNames(v).filter((n) => n.seat !== me && n.name.toLowerCase().startsWith(atWord[2].toLowerCase())).slice(0, 5) : [];
+  const pickMention = (name: string) => {
+    const start = caret - atWord![2].length - 1;
+    const next = text.slice(0, start) + '@' + name + ' ' + text.slice(caret);
+    setText(next); const pos = start + name.length + 2; setCaret(pos);
+    setTimeout(() => { const el = inputEl.current; if (el) { el.focus(); el.setSelectionRange(pos, pos); } }, 0);
+  };
 
   return (
     <div class={`chat-view ${groupOnly ? 'inline' : ''}`}>
       {!groupOnly && (
-        <div class="convs" role="tablist">
-          {['group', ...others.map((o) => String(o.seat))].map((k) => (
-            <button role="tab" aria-selected={conv === k} class={`chip ${conv === k ? 'on' : ''}`} key={k} onClick={() => switchConv(k)}>
-              {k === 'group' ? t('group') : seatName(v, Number(k))}{unreadOf(k) > 0 && <span class="badge-n">{unreadOf(k)}</span>}
-            </button>
-          ))}
+        <div class="convs" role="tablist" aria-label={t('tabChat')}>
+          {['group', ...others.map((o) => String(o.seat))].map((k) => {
+            const n = unreadOf(k), at = atMeIn(k);
+            const label = k === 'group' ? t('group') : seatName(v, Number(k));
+            return (
+              <button role="tab" aria-selected={conv === k} class={`conv ${conv === k ? 'on' : ''}`} key={k} onClick={() => switchConv(k)}
+                aria-label={`${label}${n ? `, ${n} ${t('unread')}` : ''}${at ? ', @' : ''}`}>
+                <span class="conv-face">
+                  {k === 'group' ? <span class="avatar conv-all"><Users size={20} /></span> : <Avatar seat={Number(k)} size={44} />}
+                  {n > 0 && <span class={`badge-n ${at ? 'at' : ''}`}>{at ? '@' : n}</span>}
+                </span>
+                <span class="conv-name">{label}</span>
+              </button>
+            );
+          })}
         </div>
       )}
       <div class="thread" ref={thread} aria-live="polite">
-        {msgs.length === 0 && <div class="thread-empty"><MessageCircle size={28} /><b>{t('emptyChatTitle')}</b><span>{t('silentBanner')}</span></div>}
+        {msgs.length === 0 && <div class="thread-empty"><MessageCircle size={24} aria-hidden="true" /><span>{t('oocShort')}</span></div>}
         {msgs.map((m, i) => {
           const grp = (x?: ChatMsg) => (x && x.kind === 'msg' ? `${x.from}|${x.as ?? ''}` : null);
           const key = grp(m);
@@ -519,18 +569,28 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
           <button class="icon-btn" aria-label={t('cancel')} onClick={() => setReplyTo(null)}><X size={18} /></button>
         </div>
       )}
+      {suggestions.length > 0 && (
+        <div class="mentions" role="listbox" aria-label="@">
+          {suggestions.map((n) => (
+            <button key={n.seat} role="option" class="mention-pick" onPointerDown={(e) => e.preventDefault()} onClick={() => pickMention(n.name)}>
+              <Avatar seat={n.seat} size={24} />@{n.name}
+            </button>
+          ))}
+        </div>
+      )}
       <div class="composer">
         <button class="xbtn" onPointerDown={(e) => e.preventDefault()} onClick={() => send({ type: 'safety', kind: 'x', text: '' })} aria-label={t('xCard')}>X</button>
-        <button class="safety-btn" onClick={() => setSafety(true)} aria-label={t('addLineVeil')}><ShieldAlert size={20} /></button>
         <textarea class="input chat-input" ref={inputEl} rows={1} value={text} enterkeyhint="send" name="chat-message" autocomplete="off" autocapitalize="sentences" spellcheck={false}
           data-lpignore="true" data-1p-ignore="true" data-form-type="other"
           placeholder={lock ? t('chatLocked') : t('messageAs', { name: seatName(v, me, true) })}
-          onInput={(e) => { const el = e.target as HTMLTextAreaElement; const val = el.value; setText(val); el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 112) + 'px'; if (Date.now() - lastTyping.current > 2500 && val) { lastTyping.current = Date.now(); sendTyping(conv === 'group' ? 'group' : Number(conv)); } }}
+          onInput={(e) => { const el = e.target as HTMLTextAreaElement; const val = el.value; setText(val); setCaret(el.selectionStart ?? val.length); el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 112) + 'px'; if (Date.now() - lastTyping.current > 2500 && val) { lastTyping.current = Date.now(); sendTyping(conv === 'group' ? 'group' : Number(conv)); } }}
           onFocus={() => { composing.value = true; }} onBlur={() => { composing.value = false; }}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }} />
+          onKeyUp={(e) => setCaret((e.target as HTMLTextAreaElement).selectionStart ?? 0)} onClick={(e) => setCaret((e.target as HTMLTextAreaElement).selectionStart ?? 0)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (suggestions.length) pickMention(suggestions[0].name); else submit(); }
+          }} />
         <button class="send" disabled={!text.trim()} onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()} onClick={submit} aria-label={t('send')}><SendHorizontal size={20} /></button>
       </div>
-      {safety && <SafetySheet onClose={() => setSafety(false)} />}
       {menu && <MsgMenu s={menu} onClose={() => setMenu(null)}
         onReply={() => { setReplyTo(menu.m); setMenu(null); focusInput(); }}
         onPrivate={() => { switchConv(String(menu.m.from)); setMenu(null); focusInput(); }} />}
@@ -638,6 +698,7 @@ function toastText(code: string, p?: Record<string, unknown>): string {
     case 'oocDue': return t('toastOoc');
     case 'tenUnassigned': return t('toastTen');
     case 'nudge': return t('toastNudge');
+    case 'mention': return t('toastMention', { name: String(p?.name ?? '') });
     default: return code;
   }
 }
@@ -645,6 +706,26 @@ function errText(code: string): string {
   const map: Record<string, any> = { locked: 'errLocked', copies: 'errCopies', not_holder: 'errNotHolder', need_variant: 'errVariant', blocked: 'errBlocked', host_only: 'errHost', chat_external: 'errChatExternal' };
   const k = Object.keys(map).find((x) => code.startsWith(x));
   return k ? t(map[k]) : code;
+}
+
+/** Someone wrote @you: buzz and say who, wherever you are in the app (once per message). */
+const mentionSeen = { id: 0 };
+function useMentionAlerts(v: View) {
+  const me = v.me.seat;
+  useEffect(() => {
+    if (me === null) return;
+    const fresh = chat.value.filter((m) => m.id > mentionSeen.id);
+    if (!fresh.length) return;
+    const first = mentionSeen.id === 0;            // history on (re)connect: remember it, don't buzz for old messages
+    mentionSeen.id = Math.max(...chat.value.map((m) => m.id));
+    if (first) return;
+    const hit = fresh.find((m) => m.kind === 'msg' && m.from !== me && !m.deleted && mentionsSeat(m.text, v, me));
+    if (!hit) return;
+    alertDevice('nudge');
+    const id = Date.now();
+    toasts.value = [...toasts.value.slice(-4), { id, code: 'mention', params: { name: hit.as ? charName(hit.as, seatName(v, hit.from)) : seatName(v, hit.from) } }];
+    setTimeout(() => dismissToast(id), 6000);
+  }, [chat.value.length]);
 }
 
 // =====================================================================
@@ -656,6 +737,8 @@ export function PlayScreen({ v, onMenu }: { v: View; onMenu?: () => void }) {
   const [tab, setTab] = useState<Tab>(chatApp ? 'chat' : 'cards');
   const ready = v.hands.find((h) => h.status === 'unlocked');
   const unread = chatApp && tab !== 'chat' ? unreadCount(v) : 0;
+  const [safety, setSafety] = useState(false);
+  useMentionAlerts(v);
   useEffect(() => { soundSheet.value = tab === 'sound'; return () => { soundSheet.value = false; }; }, [tab]);
   const tabs: { k: Tab; icon: any; label: string; badge?: string | number }[] = [
     ...(chatApp ? [{ k: 'chat' as Tab, icon: <MessageCircle size={22} />, label: t('tabChat'), badge: unread || undefined }] : []),
@@ -666,10 +749,13 @@ export function PlayScreen({ v, onMenu }: { v: View; onMenu?: () => void }) {
   ];
   return (
     <div class={`play ${composing.value && tab === 'chat' ? 'composing' : ''}`}>
-      <ClockBar v={v} onMenu={onMenu} />
-      {ready && tab !== 'cards' && (
-        <button class="clue-banner" onClick={() => setTab('cards')}><Sparkles size={20} /><span>{t('clueReadyBanner', { n: ready.ts })}</span><ChevronRight size={20} /></button>
+      {/* the clue alert sits at the very top and stays there, even while typing, until the card is revealed */}
+      {ready && (
+        <button class="clue-alert" onPointerDown={(e) => e.preventDefault()} onClick={() => setTab('cards')} aria-live="assertive">
+          <Sparkles size={20} aria-hidden="true" /><span>{t('clueAlert', { n: ready.ts })}</span>{tab !== 'cards' && <ChevronRight size={20} aria-hidden="true" />}
+        </button>
       )}
+      <ClockBar v={v} onMenu={onMenu} onSafety={() => setSafety(true)} />
       <div class="play-body">
         {tab === 'chat' && chatApp && <ChatTab v={v} />}
         {tab === 'cards' && <div class="scroll"><CardsTab v={v} /></div>}
@@ -678,6 +764,7 @@ export function PlayScreen({ v, onMenu }: { v: View; onMenu?: () => void }) {
         {/* the player itself lives in the app shell (SoundDock) so it survives phase changes; this tab only brings it into view */}
         {tab === 'sound' && <div class="scroll"><Muted>{t('soundHere')}</Muted></div>}
       </div>
+      {safety && <SafetySheet onClose={() => setSafety(false)} />}
       <nav class="tabbar" role="tablist">
         {tabs.map((x) => (
           <button key={x.k} role="tab" aria-selected={tab === x.k} class={tab === x.k ? 'on' : ''} onClick={() => setTab(x.k)}>

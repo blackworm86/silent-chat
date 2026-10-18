@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { startDemo, stopDemo, setDemoSpeed, viewAs, demoSeats } from '../src/client/demo';
-import { view, chat, send, errors, myGames } from '../src/client/net';
+import { view, chat, send, errors, myGames, serverNow } from '../src/client/net';
 
 afterEach(() => { stopDemo(); vi.useRealTimers(); });
 
@@ -37,9 +37,14 @@ describe('host demo', () => {
     send({ type: 'ready', value: true });
     await next('ready');
 
-    send({ type: 'startGame', source: 'manual' });
+    send({ type: 'startGame', source: 'video' });   // what the sound dock sends
     await wait(10);
     expect(view.value?.phase).toBe('play');
+    expect(view.value?.clock.source).toBe('manual');
+    send({ type: 'reportVideo', sec: 1, playing: true });   // a real player must not drag the sped-up clock back
+    setDemoSpeed(60);
+    await wait(2000);
+    expect(serverNow() - view.value!.clock.startedAt).toBeGreaterThan(60000);   // 2 s at 60x = 2 game minutes
     send({ type: 'chat', to: 'group', text: 'Has anyone heard from Alice?' });
     setDemoSpeed(60);
     for (let i = 0; i < 200 && view.value?.phase === 'play'; i++) {

@@ -56,7 +56,14 @@ export function startDemo(hostName: string, bots = 3) {
   connectLocal(DEMO_CODE, hostName, (onMsg) => {
     deliver = onMsg;
     return {
-      send: (m) => { const d = active(); if (d && room) room.receive(d.id, m); },
+      send: (m) => {
+        const d = active();
+        if (!d || !room) return;
+        // The demo clock is virtual: a real video would drag it back to real time every 2 s, so the demo is always on the manual clock.
+        if (m.t === 'do' && m.a.type === 'reportVideo') return;
+        if (m.t === 'do' && m.a.type === 'startGame') m = { t: 'do', a: { ...m.a, source: 'manual' } };
+        room.receive(d.id, m);
+      },
       close: () => { /* stopDemo owns teardown */ }
     };
   });

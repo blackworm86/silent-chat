@@ -60,6 +60,14 @@ export class Room {
     }
     const s = this.s;
     if (h.role === 'table') {
+      // one table at a time: another device only replaces it when asked to (the old one may just be reloading)
+      if (s.tableDeviceId && s.tableDeviceId !== deviceId && this.conns.has(s.tableDeviceId) && !h.takeover) {
+        return this.send(deviceId, { t: 'err', code: 'table_taken' });
+      }
+      if (s.tableDeviceId && s.tableDeviceId !== deviceId) {
+        const old = s.tableDeviceId;
+        if (this.conns.has(old)) { this.send(old, { t: 'err', code: 'table_replaced' }); this.conns.delete(old); }
+      }
       s.tableDeviceId = deviceId;
       this.conns.set(deviceId, { role: 'table' });
       this.send(deviceId, { t: 'welcome', seat: null, role: 'table', isHost: false, now });

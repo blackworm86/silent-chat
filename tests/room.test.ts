@@ -216,6 +216,19 @@ describe('table and facilitator', () => {
     h.do('tbl', { type: 'setFacilitator', seat: 0 });
     expect(h.err('tbl')).toBe('too_late');
   });
+  it('a second tablet cannot silently replace the table, but can take over when asked', () => {
+    const h = new Harness();
+    h.join('tbl', { role: 'table', create: true });
+    h.join('tab2', { role: 'table' });
+    expect(h.inbox.get('tab2')!.at(-1)).toMatchObject({ t: 'err', code: 'table_taken' });
+    expect(h.room.s!.tableDeviceId).toBe('tbl');
+    h.room.open('tab2', { t: 'hello', room: 'TEST', deviceId: 'tab2', role: 'table', takeover: true });
+    expect(h.room.s!.tableDeviceId).toBe('tab2');
+    expect(h.inbox.get('tbl')!.some((m) => m.t === 'err' && m.code === 'table_replaced')).toBe(true);
+    h.room.close('tab2');
+    h.join('tbl', { role: 'table' });                                 // the old table can come back once the new one is gone
+    expect(h.room.s!.tableDeviceId).toBe('tbl');
+  });
   it('the lobby cannot start without a facilitator', () => {
     const h = new Harness();
     h.join('tbl', { role: 'table', create: true });

@@ -11,7 +11,7 @@ export function setBusFactory(f: BusFactory) { factory = f; }
 export const makeBus = (cfg: any) => factory(cfg);
 
 export interface BusParams {
-  code: string; role: 'player' | 'table'; create: boolean; name: string; deviceId: string; pass: string;
+  code: string; role: 'player' | 'table'; create: boolean; name: string; deviceId: string; pass: string; takeover?: boolean;
   onMsg: (m: ServerMsg) => void;
   onFatal: (code: string) => void;
   onHostState?: (offline: boolean) => void;
@@ -32,7 +32,7 @@ function defaultStore() {
 export async function connectBus(bus: Bus, p: BusParams): Promise<Wire | null> {
   const store = p.storage ?? defaultStore();
   const key = await deriveBusKey(p.pass, p.code);
-  const hello: Hello = { t: 'hello', room: p.code, deviceId: p.deviceId, role: p.role, create: false, name: p.name };
+  const hello: Hello = { t: 'hello', room: p.code, deviceId: p.deviceId, role: p.role, create: false, name: p.name, takeover: p.takeover };
   const meta = await bus.getMeta(p.code);
   const hostFlag = store.get('aim.host.' + p.code) === p.deviceId;
   const becomeHost = p.role === 'table' && !meta?.closed && ((p.create && !meta) || (hostFlag && !!meta));

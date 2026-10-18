@@ -12,8 +12,8 @@
 | D1 | Private use for the owner and friends. Original Italian content from the owner's physical copy (base game only). |
 | D2 | App UI in **Italian and English**. Card content: Italian verbatim + **unofficial English translation**, always labelled "Unofficial translation". |
 | D3 | Two play modes: **Full Digital** and **Chat + Game Aids** (uses the physical components). Mixable per component (§2). |
-| D4 | Two sound options for the countdown video/soundtrack: **audio from the Host's device** or **audio from the shared tablet**. |
-| D5 | Shared "table device" (tablet in the centre) is optional but first-class. |
+| D4 | The **table** (tablet/PC) always plays the soundtrack: the YouTube video, or an audio/video file kept on that device. *(Revised: the old host-device option is gone.)* |
+| D5 | The table device is **required**: it opens the game, runs the server (Firebase mode), owns the clock and shows the shared state. *(Revised.)* |
 | D6 | Works with internet; must also work on a **local wireless network without internet** (clock-only audio fallback, no YouTube). |
 | D7 | Speed is the goal: the app automates dealing, shuffling, drawing, timing, reminders. |
 | D8 | The day of the week shown is **Saturday** by default (Italian guide prints "domenica", which contradicts "Wednesday, 3 days ago"). It is a setting. |
@@ -81,10 +81,10 @@ Rules:
 
 | Role | Description |
 |---|---|
-| **Host / Facilitator** | Plays **Charlie Barnes**. Creates the room, owns settings, sees the Facilitator panel (prompts, nudges, overrides). Also a normal player. |
+| **Facilitator** | A player chosen **on the table** in the lobby. Plays **Charlie Barnes**, owns settings, advances phases, sees the Facilitator panel (prompts, nudges, overrides). Also a normal player. |
 | **Player** | Any other seat (2–4). |
-| **Table device** *(optional)* | A shared tablet in the centre: shows the table view. Can be the sound device (D4). Not a player seat. |
-| **Sound device** | Exactly one device plays the video/audio: **Host's device** or **Table device** (chosen in lobby, changeable only while paused). |
+| **Table device** *(required)* | Tablet/PC in the centre. Creates the room, shows the QR, picks the facilitator, plays the soundtrack, starts/pauses/resumes the clock, shows the clue timeline with reminders, players and table view. Not a player seat. Only one at a time: another device replaces it only after an explicit takeover. |
+| **Sound device** | Always the table. |
 
 Seats: 3–5 players including Charlie. Late join and reconnect restore the seat from a local token.
 
@@ -105,14 +105,14 @@ Each phase lists what the app does. "Aids" = Chat + Game Aids preset.
 8. **Table setup + Starting hunches.** Five Suspects and five Locations laid out; players take turns choosing one and describing why it is suspicious (app shows the turn order and a prompt). Then all cards are shuffled back into 10-card decks.
 9. **Clue deal.** App deals (§5.2/5.3). Centre card (10) placed. Everyone sees only their own cards' timestamps (never the text until it is time).
 10. **Rules walkthrough.** Quick Guide (13 points) shown; Host panel offers the explanation script prompts (short, original wording).
-11. **Ready check → Start.** Clock paused at **90:00**. Host taps *Start* (starts video on sound device, clock follows).
+11. **Ready check → Start.** Clock paused at **90:00**. The table taps *Start* (starts the soundtrack inside the tap; the clock starts with it). The facilitator can start a manual clock if the table is missing.
 12. **Play (90:00 → 0:00).** See §5–§8. Silent-play banner ("no talking").
 13. **Final messages (0:00).** One last in-character message each. Debrief card on Charlie's screen.
 14. **Voicemail playback.** Plays on the sound device, ducking the final song (§9).
 15. **Debrief.** Four questions on Charlie's screen; "Send real-name message" step; reminder to rename contacts (Aids/external chat only). Optional chat-log export (Full Digital).
 
 ### 4.1 Host settings (all in lobby, editable while paused)
-`language(UI)`, `mode preset`, per-component source switches (§2.2), `soundDevice` (host|table), `dayOfWeek` (default saturday), `includeBodyEnding` (default on; off removes clue_10_b), `showSecretsWhileChoosing` (off), `silentPlayBanner` (on), `vibrateOnClue` (on), `autoLockChat` (on).
+`language(UI)`, `mode preset`, per-component source switches (§2.2), `dayOfWeek` (default saturday), `includeBodyEnding` (default on; off removes clue_10_b), `showSecretsWhileChoosing` (off), `silentPlayBanner` (on), `vibrateOnClue` (on), `autoLockChat` (on).
 
 ---
 
@@ -193,16 +193,7 @@ If a holder has not opened their card **60 s** after T, the Host panel shows a n
 ### 6.2 Two sound options (D4)
 | Option | Where video plays | What others see |
 |---|---|---|
-| **A. Host's device** | Host phone (or laptop): YouTube player is open in the app (small, visible) | Clock only; audio comes from the Host's device (optionally Bluetooth/cast at the OS level) |
-| **B. Shared tablet** | Table tablet: large video + table view | Clock + table view; audio from the tablet |
-
-Video: `https://youtu.be/ysOOFIOAy7A` (soundtrack + countdown). The YouTube IFrame Player API on the sound device reports `currentTime`; **clock = video position** while the video plays ("video-synced" mode), so pausing the video pauses everyone.
-Requirements: the player must remain visible (≥ 200×200 px) per YouTube terms; start requires a user tap (autoplay policy) — satisfied by the Host's *Start* button.
-
-### 6.3 Fallbacks (automatic)
-1. **Offline or embedding blocked or ads interfere** → app switches to its own clock ("manual mode"): Host taps *Start together* when the music starts; ±1 s nudge buttons fix drift.
-2. **External playback** (the Host casts YouTube from the YouTube app) → same as manual mode.
-3. **User's own audio file** (optional): file picker stores it in IndexedDB on the sound device; played with the Web Audio/HTMLAudio API; the clock then follows the file position. The app never ships audio.
+**Revised (table-first):** the table always plays the soundtrack. Sources: the YouTube video (default) or an audio/video file chosen on the table, stored in its IndexedDB and never uploaded. **The game clock is the source of truth**: the soundtrack follows it (plays/pauses with it; seeks when it drifts by more than 3 s, at most every 15 s). Pause/resume can come from the table or the facilitator; the music follows either. If the browser blocks playback (autoplay rules, e.g. after a reload), the table shows *Tap to turn the sound on*. If the table reloads mid-game, the snapshot restores the clock **paused** at the last save. The YouTube player must remain visible (≥ 200×200 px) per YouTube terms.
 
 ### 6.4 Clock-triggered events
 Scheduled by the engine from the clue deal: clue unlocks (every timestamp), effect triggers (15:00, 8:00, 3:00, 2:00), delays. Triggers survive reconnects because they derive from `remaining`.
@@ -438,4 +429,4 @@ Reuse the approved look from the mockup (dark "phone at night", amber for clue m
 
 ## Appendix B — Firebase transport (added v0.3)
 
-Goal: free hosting with no credit card. **GitHub Pages** serves the static app; **Firebase Realtime Database** (Spark plan) is only a message queue. The *host's browser* runs the same `Room` engine used by the Cloudflare Worker (`src/client/bus/host.ts`); other devices exchange messages with it through `rooms/{code}/q` (device→host) and `rooms/{code}/to/{device}` (host→device). Every payload is AES-GCM encrypted with a key derived from the group passphrase and the room code, so the database only ever holds ciphertext. The host saves an encrypted snapshot (and voicemails) so that a reload of the same device resumes the game; remotes re-announce themselves when the host's `epoch` changes. Presence: any message counts as a heartbeat; 30 s of silence marks a device offline and the next message reattaches it. Trade-off: the host's device is the server (keep the app open in front); Cloudflare mode has no such constraint.
+Goal: free hosting with no credit card. **GitHub Pages** serves the static app; **Firebase Realtime Database** (Spark plan) is only a message queue. The *table's browser* runs the same `Room` engine used by the Cloudflare Worker (`src/client/bus/host.ts`); other devices exchange messages with it through `rooms/{code}/q` (device→host) and `rooms/{code}/to/{device}` (host→device). Every payload is AES-GCM encrypted with a key derived from the group passphrase and the room code, so the database only ever holds ciphertext. The host saves an encrypted snapshot (and voicemails) so that a reload of the same device resumes the game; remotes re-announce themselves when the host's `epoch` changes. Presence: any message counts as a heartbeat; 30 s of silence marks a device offline and the next message reattaches it. Trade-off: the table is the server (keep the page open in front); Cloudflare mode has no such constraint.

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'preact/hooks';
-import { Play, Pause, Menu, Trash2, LogOut, Crown, MicOff, Lock, BellRing } from 'lucide-preact';
+import { Play, Pause, Menu, Trash2, LogOut, Crown, MicOff, Lock, BellRing, Volume2, FileAudio, MonitorPlay } from 'lucide-preact';
 import { view, fatal, connect, disconnect, conn, send, deleteSession } from '../net';
 import { C, tx, inviteUrl, fmtClock, lang, setLang, charName } from '../content';
 import { t, Btn, Muted, useRemaining, Label, Avatar, Modal, ListRow, Section, ConfirmSheet, seatName } from './common';
 import { TableView, LightsOut } from './play';
-import { SoundDock, VoicemailPlayer, startAudio, toggleClock, type DockMode } from './sound';
+import { SoundDock, VoicemailPlayer, startAudio, toggleClock, soundBlocked, unblockSound, soundSource, soundFileName, setSoundSource, saveSoundFile, forgetSoundFile, loadSoundFile, type DockMode } from './sound';
 import { Qr } from './setup';
 import { useWakeLock, FatalScreen, Connecting } from './shell';
 import { dict } from '../i18n';
@@ -15,13 +15,24 @@ import type { View } from '../../shared/types';
  * plays the video/music, owns the clock and shows the shared state. It has no seat.
  */
 export function TableApp({ code, create }: { code: string; create: boolean }) {
-  useEffect(() => { connect(code, 'table', create, 'table'); return () => disconnect(); }, [code]);
+  const [takeover, setTakeover] = useState(false);
+  useEffect(() => { connect(code, 'table', create, 'table', takeover); return () => disconnect(); }, [code, takeover]);
   // once the room exists, drop "/new" so a reload resumes instead of trying to create again
   useEffect(() => {
     if (create && conn.value === 'open' && view.value) history.replaceState(null, '', location.pathname + location.search + `#/t/${code}`);
   }, [create, conn.value, !!view.value]);
   useWakeLock(true);
   const v = view.value;
+  if (fatal.value === 'table_taken') {
+    return (
+      <div class="page center"><div class="narrow-box stack loose center-text">
+        <h2>{t('fatal_table_taken')}</h2>
+        <Muted>{t('tableTakeoverHint')}</Muted>
+        <Btn onClick={() => setTakeover(true)}>{t('tableTakeover')}</Btn>
+        <a class="btn ghost" href="#/">{t('backHome')}</a>
+      </div></div>
+    );
+  }
   if (fatal.value) return <FatalScreen code={fatal.value} />;
   if (!v) return <Connecting />;
   return <TableBody v={v} />;
@@ -82,6 +93,7 @@ export function TableBody({ v, noSound }: { v: View; noSound?: boolean }) {
         {dock ? <SoundDock mode={dock} /> : <div class="dock parked" />}
 
         <div class="t-action">
+          {soundBlocked.value && !noSound && <Btn icon={<Volume2 size={22} />} onClick={unblockSound}>{t('soundEnable')}</Btn>}
           {phase === 'ready' && <Btn icon={<Play size={22} />} onClick={() => startAudio(v.settings.videoOffsetSec)}>{t('startGame')}</Btn>}
           {playing && (v.clock.running
             ? <Btn kind="ghost" icon={<Pause size={22} />} onClick={() => toggleClock(true)}>{t('tablePause')}</Btn>
@@ -89,7 +101,7 @@ export function TableBody({ v, noSound }: { v: View; noSound?: boolean }) {
           {playing && <Label>{t('soundHere')}</Label>}
         </div>
       </div>
-      {menu && <TableMenu v={v} onClose={() => setMenu(false)} />}
+      {menu && <TableMenu v={v} noSoundMenu={noSound} onClose={() => setMenu(false)} />}
     </div>
   );
 }
@@ -177,7 +189,33 @@ function Timeline({ v, rem }: { v: View; rem: number }) {
   );
 }
 
-function TableMenu({ v, onClose }: { v: View; onClose: () => void }) {
+/** YouTube, or an audio/video file chosen once on this tablet and kept in its browser (never uploaded). */
+function SoundSourcePicker() {
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { void loadSoundFile(); }, []);
+  const pick = (e: Event) => {
+    const f = (e.target as HTMLInputElement).files?.[0];
+    if (!f) return;
+    setBusy(true);
+    saveSoundFile(f).catch(() => {}).finally(() => setBusy(false));
+  };
+  return (
+    <Section title={t('soundtrack')}>
+      <div class="seg" role="group" aria-label={t('soundtrack')}>
+        <button class={soundSource.value === 'youtube' ? 'on' : ''} onClick={() => setSoundSource('youtube')}><MonitorPlay size={18} /> YouTube</button>
+        <button class={soundSource.value === 'file' ? 'on' : ''} disabled={!soundFileName.value} onClick={() => setSoundSource('file')}><FileAudio size={18} /> {t('soundFile')}</button>
+      </div>
+      <label class="btn ghost small file-pick">
+        <FileAudio size={18} />{busy ? '…' : soundFileName.value ? t('soundReplace') : t('soundChoose')}
+        <input type="file" accept="audio/*,video/*" onChange={pick} />
+      </label>
+      {soundFileName.value && <div class="row between nowrap"><span class="small muted">{soundFileName.value}</span><button class="link danger" onClick={() => void forgetSoundFile()}>{t('remove')}</button></div>}
+      <Muted small>{t('soundFileHint')}</Muted>
+    </Section>
+  );
+}
+
+function TableMenu({ v, onClose, noSoundMenu }: { v: View; onClose: () => void; noSoundMenu?: boolean }) {
   const [del, setDel] = useState(false);
   const [busy, setBusy] = useState(false);
   if (del) {
@@ -189,6 +227,7 @@ function TableMenu({ v, onClose }: { v: View; onClose: () => void }) {
       <Section title={t('language')}>
         <div class="seg"><button class={lang.value === 'it' ? 'on' : ''} onClick={() => setLang('it')}>Italiano</button><button class={lang.value === 'en' ? 'on' : ''} onClick={() => setLang('en')}>English</button></div>
       </Section>
+      {!noSoundMenu && <SoundSourcePicker />}
       <Muted small>{t('hostKeepOpen')}</Muted>
       <div class="list">
         <ListRow icon={<LogOut size={20} />} onClick={() => { location.hash = '#/'; }}>{t('leave')}</ListRow>

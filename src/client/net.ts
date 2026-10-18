@@ -18,7 +18,7 @@ export const nudge = signal<number>(0);
 let wire: Wire | null = null;
 let offset = 0;
 const samples: number[] = [];
-type Params = { room: string; role: 'player' | 'table'; create: boolean; name: string; local?: boolean };
+type Params = { room: string; role: 'player' | 'table'; create: boolean; name: string; local?: boolean; takeover?: boolean };
 let params: Params | null = null;
 let retry = 0;
 let pingTimer: ReturnType<typeof setInterval> | null = null;
@@ -45,9 +45,9 @@ function wsUrl(room: string) {
   return `${proto}://${location.host}/ws/${room}`;
 }
 
-export function connect(room: string, role: 'player' | 'table', create: boolean, name: string) {
+export function connect(room: string, role: 'player' | 'table', create: boolean, name: string, takeover = false) {
   disconnect();
-  params = { room, role, create, name };
+  params = { room, role, create, name, takeover };
   fatal.value = null; retry = 0; offset = 0; samples.length = 0;
   if (isFirebase()) void openBus(params); else openWs();
 }
@@ -71,7 +71,7 @@ function openWs() {
   wire = { send: (m: ClientMsg) => { if (sock.readyState === 1) sock.send(JSON.stringify(m)); }, close: () => { sock.onclose = null; sock.close(); } };
   sock.onopen = () => {
     retry = 0;
-    sock.send(JSON.stringify({ t: 'hello', room: p.room, deviceId: deviceId(), role: p.role, create: p.create, name: p.name }));
+    sock.send(JSON.stringify({ t: 'hello', room: p.room, deviceId: deviceId(), role: p.role, create: p.create, name: p.name, takeover: p.takeover }));
     conn.value = 'open';
     sendPing();
     if (pingTimer) clearInterval(pingTimer);
@@ -95,7 +95,7 @@ async function openBus(p: Params) {
     const { makeBus, connectBus } = await import('./bus/connect');
     const bus = await makeBus(config.value.firebase);
     const w = await connectBus(bus, {
-      code: p.room, role: p.role, create: p.create, name: p.name, deviceId: deviceId(), pass: getPass(),
+      code: p.room, role: p.role, create: p.create, name: p.name, deviceId: deviceId(), pass: getPass(), takeover: p.takeover,
       onMsg, onFatal: setFatal, onHostState: (off) => { hostOffline.value = off; }
     });
     if (params !== p) { w?.close(); return; }
@@ -131,7 +131,7 @@ function writeGames(g: MyGame[]) {
 function rememberGame(code: string) { if (!myGames.value.some((g) => g.code === code)) writeGames([{ code, at: Date.now() }, ...myGames.value].slice(0, 8)); }
 export function forgetGame(code: string) {
   writeGames(myGames.value.filter((g) => g.code !== code));
-  try { localStorage.removeItem('aim.host.' + code); localStorage.removeItem('aim.notes.' + code); } catch { /* ignore */ }
+  try { localStorage.removeItem('aim.host.' + code); localStorage.removeItem('aim.notes.' + code); localStorage.removeItem('aim.read.' + code); } catch { /* ignore */ }
 }
 
 function setFatal(code: string) {
@@ -185,7 +185,7 @@ function onMsg(m: ServerMsg) {
       break;
     }
     case 'err':
-      if (['no_room', 'started', 'full', 'deleted'].includes(m.code)) setFatal(m.code);
+      if (['no_room', 'started', 'full', 'deleted', 'table_taken', 'table_replaced'].includes(m.code)) setFatal(m.code);
       else { const id = seq++; errors.value = [...errors.value.slice(-3), { id, code: m.msg ?? m.code }]; setTimeout(() => dismissError(id), 6000); }
       break;
     case 'toast': {

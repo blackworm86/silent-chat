@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import { deriveKey, decryptBytes, encryptBytes } from '../src/shared/packcrypto';
 
 describe('encrypted content pack', () => {
-  it('tools/pack.mjs output is decryptable by the browser-side WebCrypto code, and wrong passphrases fail', async () => {
+  // needs the private game content (content/content.json), which is not in the repository
+  it.skipIf(!fs.existsSync('content/content.json'))('tools/pack.mjs output is decryptable by the browser-side WebCrypto code, and wrong passphrases fail', async () => {
     const out = 'tmp-pack-test';
     execFileSync('node', ['tools/pack.mjs', '--out', out], { env: { ...process.env, PACK_PASSPHRASE: 'correct horse', PACK_ITERATIONS: '1000' }, stdio: 'pipe' });
     const man = JSON.parse(fs.readFileSync(out + '/manifest.json', 'utf8'));

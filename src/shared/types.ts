@@ -151,7 +151,7 @@ export interface View {
 }
 
 // ---------- Protocol ----------
-export interface Hello { t: 'hello'; room: string; deviceId: string; role: 'player' | 'table'; create?: boolean; name?: string }
+export interface Hello { t: 'hello'; room: string; deviceId: string; role: 'player' | 'table'; create?: boolean; name?: string; /** a second tablet explicitly replacing the table */ takeover?: boolean }
 export type Intent = { type: string } & Record<string, any>;
 export type ClientMsg =
   | Hello

@@ -316,10 +316,19 @@ function CardsTab({ v }: { v: View }) {
 // =====================================================================
 const composing = signal(false);
 const readMap = signal<Record<string, number>>({});
+let readRoom = '';
+/** What this phone has read, per room, so a reload does not mark the whole chat unread again. */
+function syncReadMap(code: string) {
+  if (readRoom === code) return;
+  readRoom = code;
+  try { readMap.value = JSON.parse(localStorage.getItem('aim.read.' + code) ?? '{}'); } catch { readMap.value = {}; }
+}
+readMap.subscribe((m) => { if (readRoom) { try { localStorage.setItem('aim.read.' + readRoom, JSON.stringify(m)); } catch { /* ignore */ } } });
 const convOf = (m: ChatMsg, me: number): string | null =>
   m.to === 'group' ? 'group' : m.from === me ? String(m.to) : m.to === me ? String(m.from) : null;
 
 export function unreadCount(v: View): number {
+  syncReadMap(v.code);
   const me = v.me.seat; if (me === null) return 0;
   return chat.value.filter((m) => m.kind !== 'system' && m.from !== me && !m.deleted && m.id > (readMap.value[convOf(m, me) ?? 'group'] ?? 0)).length;
 }
@@ -475,6 +484,7 @@ export function SafetySheet({ onClose }: { onClose: () => void }) {
 }
 
 export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
+  syncReadMap(v.code);
   const me = v.me.seat!;
   const [conv, setConv] = useState<string>('group');
   const [text, setText] = useState('');
@@ -523,7 +533,8 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
   const atMeIn = (k: string) => unreadIn(k).some((m) => mentionsSeat(m.text, v, me));
   // @mentions: the word being typed at the caret, if it starts with @
   const atWord = /(^|\s)@([^\s@]*)$/.exec(text.slice(0, caret));
-  const suggestions = atWord ? mentionNames(v).filter((n) => n.seat !== me && n.name.toLowerCase().startsWith(atWord[2].toLowerCase())).slice(0, 5) : [];
+  const fold = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const suggestions = atWord ? mentionNames(v).filter((n) => n.seat !== me && fold(n.name).split(/[\s'’-]+/).concat(fold(n.name)).some((w) => w.startsWith(fold(atWord[2])))).slice(0, 5) : [];
   const pickMention = (name: string) => {
     const start = caret - atWord![2].length - 1;
     const next = text.slice(0, start) + '@' + name + ' ' + text.slice(caret);
@@ -703,9 +714,16 @@ function toastText(code: string, p?: Record<string, unknown>): string {
   }
 }
 function errText(code: string): string {
-  const map: Record<string, any> = { locked: 'errLocked', copies: 'errCopies', not_holder: 'errNotHolder', need_variant: 'errVariant', blocked: 'errBlocked', host_only: 'errHost', chat_external: 'errChatExternal' };
-  const k = Object.keys(map).find((x) => code.startsWith(x));
-  return k ? t(map[k]) : code;
+  if (code === 'blocked:facilitator' || code.startsWith('blocked:facilitator')) return t('errNoFacilitator');
+  if (code.startsWith('blocked:min_players')) return t('needThree');
+  const map: Record<string, any> = {
+    locked: 'errLocked', copies: 'errCopies', not_holder: 'errNotHolder', need_variant: 'errVariant', blocked: 'errBlocked', host_only: 'errHost',
+    chat_external: 'errChatExternal', too_late: 'errTooLate', taken: 'errTaken', final_used: 'errFinalUsed', not_your_turn: 'errNotYourTurn',
+    not_sound_device: 'errNotTable', not_ready: 'errNotReady', vm_size: 'errVmSize', not_playing: 'errNotNow', not_now: 'errNotNow', no_turn: 'errNotNow',
+    already: 'errAlready', not_author: 'errNotAuthor', player_only: 'errNotNow', not_allowed: 'errNotAllowed'
+  };
+  const k = Object.keys(map).sort((a, b) => b.length - a.length).find((x) => code.startsWith(x));
+  return t(k ? map[k] : 'errGeneric');
 }
 
 /** Someone wrote @you: buzz and say who, wherever you are in the app (once per message). */

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'preact/hooks';
-import { Play, Pause, Menu, Trash2, LogOut, Crown, MicOff, Lock, BellRing, Volume2, FileAudio, MonitorPlay } from 'lucide-preact';
+import { Play, Pause, Menu, Trash2, LogOut, Crown, MicOff, Lock, BellRing, Volume2, FileAudio, MonitorPlay, Bot } from 'lucide-preact';
 import { view, fatal, connect, disconnect, conn, send, deleteSession } from '../net';
+import { addTableBot, resumeTableBots, stopTableBots, tableBots } from '../tablebots';
+import { demoActive } from '../demo';
 import { C, tx, inviteUrl, fmtClock, lang, setLang, charName } from '../content';
 import { t, Btn, Muted, useRemaining, Label, Avatar, Modal, ListRow, Section, ConfirmSheet, seatName } from './common';
 import { TableView, LightsOut } from './play';
@@ -17,6 +19,9 @@ import type { View } from '../../shared/types';
 export function TableApp({ code, create }: { code: string; create: boolean }) {
   const [takeover, setTakeover] = useState(false);
   useEffect(() => { connect(code, 'table', create, 'table', takeover); return () => disconnect(); }, [code, takeover]);
+  // bot players this table added for a test game come back after a reload (same ids, same seats)
+  useEffect(() => { if (view.value) resumeTableBots(code); }, [code, !!view.value]);
+  useEffect(() => () => stopTableBots(), [code]);
   // once the room exists, drop "/new" so a reload resumes instead of trying to create again
   useEffect(() => {
     if (create && conn.value === 'open' && view.value) history.replaceState(null, '', location.pathname + location.search + `#/t/${code}`);
@@ -132,6 +137,9 @@ function TableLobby({ v }: { v: View }) {
               ))}
             </div>
             {!enough && <Muted small>{t('needThree')}</Muted>}
+            {!demoActive.value && v.players.length < 5 && tableBots.value < 4 && (
+              <Btn kind="ghost" small full={false} icon={<Bot size={18} />} onClick={() => addTableBot(v.code)}>{t('tableAddBot')}</Btn>
+            )}
           </>
         )}
       </Section>

@@ -1,5 +1,7 @@
 // UI strings (Italian / English). Game CARD text is NOT here: it lives in the encrypted content pack.
 const en = {
+  "demoTwoDevices": "Testing with a tablet and one phone? Start a game on the tablet, add bot players in the lobby, and join from your phone as facilitator.",
+  "tableAddBot": "Add a bot player",
   "upcomingClues": "Coming up",
   "relationsYours": "Your lines",
   "soundEnable": "Tap to turn the sound on",
@@ -398,6 +400,8 @@ const en = {
 
 export type Key = keyof typeof en;
 const it: Record<Key, string> = {
+  "demoTwoDevices": "Vuoi provare con un tablet e un telefono? Avvia la partita sul tablet, aggiungi giocatori bot nella sala d'attesa ed entra dal telefono come facilitatore.",
+  "tableAddBot": "Aggiungi un giocatore bot",
   "upcomingClues": "In arrivo",
   "relationsYours": "Le tue frasi",
   "soundEnable": "Tocca per attivare l'audio",

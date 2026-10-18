@@ -107,6 +107,7 @@ function Home() {
         <div class="stack tight">
           <Btn kind="outline" disabled={!ok} icon={<FlaskConical size={18} />} onClick={() => { location.hash = '#/demo'; }}>{t('hostDemo')}</Btn>
           <p class="faint small center-text">{t('hostDemoHint')}</p>
+          <p class="faint small center-text">{t('demoTwoDevices')}</p>
         </div>
         <div class="stack tight center-text" style={{ marginTop: 'var(--s5)' }}>
           <p class="faint small">{t('privateNote')}</p>

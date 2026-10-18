@@ -38,7 +38,7 @@ let clockFn: (() => number) | null = null;
 export function setClockFn(f: (() => number) | null) { clockFn = f; }
 export const serverNow = () => (clockFn ? clockFn() : Date.now() + offset);
 
-function wsUrl(room: string) {
+export function wsUrl(room: string) {
   const override = new URLSearchParams(location.search).get('ws');
   if (override) return `${override.replace(/\/$/, '')}/ws/${room}`;
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -131,7 +131,7 @@ function writeGames(g: MyGame[]) {
 function rememberGame(code: string) { if (!myGames.value.some((g) => g.code === code)) writeGames([{ code, at: Date.now() }, ...myGames.value].slice(0, 8)); }
 export function forgetGame(code: string) {
   writeGames(myGames.value.filter((g) => g.code !== code));
-  try { localStorage.removeItem('aim.host.' + code); localStorage.removeItem('aim.notes.' + code); localStorage.removeItem('aim.read.' + code); } catch { /* ignore */ }
+  try { localStorage.removeItem('aim.host.' + code); localStorage.removeItem('aim.notes.' + code); localStorage.removeItem('aim.read.' + code); localStorage.removeItem('aim.bots.' + code); } catch { /* ignore */ }
 }
 
 function setFatal(code: string) {

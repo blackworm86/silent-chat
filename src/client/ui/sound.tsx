@@ -31,6 +31,10 @@ export const yt = { player: null as Media | null, ready: false, failed: false, l
 const notify = () => yt.listeners.forEach((f) => f());
 /** The browser refused to start the sound without a tap (autoplay rules, typical after a reload). */
 export const soundBlocked = signal(false);
+/** Why the YouTube player failed, in terms a person can act on (null while it works). */
+export const soundError = signal<null | 'embed' | 'gone' | 'referrer' | 'network' | 'file' | 'other'>(null);
+const errKind = (code: unknown): NonNullable<typeof soundError.value> =>
+  code === 101 || code === 150 ? 'embed' : code === 100 ? 'gone' : code === 153 ? 'referrer' : code === 'timeout' || code === 'load' ? 'network' : code === 'file' ? 'file' : 'other';
 
 export type SoundSource = 'youtube' | 'file';
 const readSource = (): SoundSource => { try { return localStorage.getItem('aim.sound.source') === 'file' ? 'file' : 'youtube'; } catch { return 'youtube'; } };
@@ -98,6 +102,22 @@ export function SoundDock({ mode }: { mode: DockMode }) {
   return <div class={`dock ${mode}`}><SoundPlayer key={soundSource.value + (soundFileName.value ?? '')} big /></div>;
 }
 
+/** The video can't play: say why, and offer the two ways out (a file on this device, or YouTube on another device). */
+function SoundFailed() {
+  const kind = soundError.value ?? 'other';
+  const pick = (e: Event) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) void saveSoundFile(f); };
+  return (
+    <div class="sound-failed" role="alert">
+      <p class="warn"><b>{t('videoFailed')}</b></p>
+      <p class="muted small">{t(('soundErr_' + kind) as any)}</p>
+      <div class="row">
+        <label class="btn primary small file-pick auto">{t('soundChoose')}<input type="file" accept="audio/*,video/*" onChange={pick} /></label>
+        {kind !== 'file' && <a class="btn ghost small auto" href={`https://youtu.be/${rules.settings.videoId}`} target="_blank" rel="noopener">{t('soundOpenYoutube')}</a>}
+      </div>
+    </div>
+  );
+}
+
 export function SoundPlayer({ big }: { big?: boolean }) {
   const host = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'failed' | 'nofile'>('loading');
@@ -105,9 +125,9 @@ export function SoundPlayer({ big }: { big?: boolean }) {
 
   useEffect(() => {
     let dead = false;
-    yt.ready = false; yt.failed = false; yt.player = null;
-    const fail = () => { yt.failed = true; notify(); if (!dead) setState('failed'); const vv = view.value; if (vv && vv.clock.source === 'video') send({ type: 'setClockSource', source: 'manual' }); };
-    const ok = () => { yt.ready = true; notify(); if (!dead) setState('ready'); };
+    yt.ready = false; yt.failed = false; yt.player = null; soundError.value = null;
+    const fail = (code?: unknown) => { yt.failed = true; soundError.value = errKind(code); notify(); if (!dead) setState('failed'); const vv = view.value; if (vv && vv.clock.source === 'video') send({ type: 'setClockSource', source: 'manual' }); };
+    const ok = () => { yt.ready = true; soundError.value = null; notify(); if (!dead) setState('ready'); };
     let cleanup = () => {};
     if (soundSource.value === 'file') {
       void loadSoundFile().then((f) => {
@@ -119,7 +139,7 @@ export function SoundPlayer({ big }: { big?: boolean }) {
         el.src = url;
         host.current.innerHTML = ''; host.current.appendChild(el);
         el.oncanplay = () => { if (!yt.ready) ok(); };
-        el.onerror = fail;
+        el.onerror = () => fail('file');
         el.onplay = el.onpause = () => notify();
         yt.player = {
           play: () => el.play(), pause: () => el.pause(), seek: (sec) => { el.currentTime = sec; },
@@ -136,14 +156,14 @@ export function SoundPlayer({ big }: { big?: boolean }) {
         const p = new YT.Player(el, {
           videoId: rules.settings.videoId, width: '100%', height: '100%',
           playerVars: { playsinline: 1, rel: 0, modestbranding: 1, controls: 1 },
-          events: { onReady: ok, onError: fail, onStateChange: () => notify() }
+          events: { onReady: ok, onError: (e: any) => fail(e?.data), onStateChange: () => notify() }
         });
         yt.player = {
           play: () => p.playVideo(), pause: () => p.pauseVideo(), seek: (sec) => p.seekTo(sec, true),
           time: () => p.getCurrentTime(), playing: () => p.getPlayerState() === 1, volume: (x) => p.setVolume(x)
         };
         cleanup = () => { try { p.destroy(); } catch { /* ignore */ } };
-      }).catch(fail);
+      }).catch((e) => fail(e?.message));
     }
     return () => { dead = true; cleanup(); yt.player = null; yt.ready = false; };
   }, []);
@@ -167,9 +187,9 @@ export function SoundPlayer({ big }: { big?: boolean }) {
   }, []);
 
   return (
-    <div class={`yt-wrap ${big ? 'big' : ''}`}>
+    <div class={`yt-wrap ${big ? 'big' : ''} ${state === 'failed' || state === 'nofile' ? 'dead' : ''}`}>
       <div class="yt-box" ref={host} />
-      {state === 'failed' && <p class="warn">{t('videoFailed')}</p>}
+      {state === 'failed' && <SoundFailed />}
       {state === 'nofile' && <p class="warn">{t('soundNoFile')}</p>}
       {state === 'loading' && <p class="muted">{t('videoLoading')}</p>}
       {v.clock.source === 'manual' && v.phase === 'play' && <p class="muted small">{t('manualClock')}</p>}

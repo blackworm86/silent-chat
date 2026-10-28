@@ -1,5 +1,12 @@
 // UI strings (Italian / English). Game CARD text is NOT here: it lives in the encrypted content pack.
 const en = {
+  "soundErr_file": "This file can't be played on this device. Choose another one.",
+  "soundOpenYoutube": "Open on YouTube",
+  "soundErr_other": "YouTube reported a playback error.",
+  "soundErr_network": "This device can't reach YouTube (no internet, or a network that blocks it).",
+  "soundErr_referrer": "YouTube refused the embed (error 153). Reload the page; if it persists, use a file.",
+  "soundErr_gone": "The video was removed or made private (YouTube error 100).",
+  "soundErr_embed": "The video owner doesn't allow it to be played inside other sites (YouTube error 101/150).",
   "demoTwoDevices": "Testing with a tablet and one phone? Start a game on the tablet, add bot players in the lobby, and join from your phone as facilitator.",
   "tableAddBot": "Add a bot player",
   "upcomingClues": "Coming up",
@@ -304,7 +311,7 @@ const en = {
   "veil": "Veil",
   "veilAdded": "{name} set a Veil",
   "veilWhat": "What should stay off-screen (Veil)?",
-  "videoFailed": "Video unavailable — using the manual clock.",
+  "videoFailed": "The soundtrack can't play.",
   "videoLoading": "Loading video…",
   "videoOffset": "Video position at 90:00 (sec)",
   "videoOffsetHint": "Leave 0 unless the video has an intro before the countdown.",
@@ -387,6 +394,13 @@ const en = {
 
 export type Key = keyof typeof en;
 const it: Record<Key, string> = {
+  "soundErr_file": "Questo file non si può riprodurre su questo dispositivo. Scegline un altro.",
+  "soundOpenYoutube": "Apri su YouTube",
+  "soundErr_other": "YouTube ha segnalato un errore di riproduzione.",
+  "soundErr_network": "Questo dispositivo non raggiunge YouTube (niente internet o rete che lo blocca).",
+  "soundErr_referrer": "YouTube ha rifiutato l'incorporamento (errore 153). Ricarica la pagina; se persiste, usa un file.",
+  "soundErr_gone": "Il video è stato rimosso o reso privato (errore YouTube 100).",
+  "soundErr_embed": "Chi ha caricato il video non ne permette la riproduzione dentro altri siti (errore YouTube 101/150).",
   "demoTwoDevices": "Vuoi provare con un tablet e un telefono? Avvia la partita sul tablet, aggiungi giocatori bot nella sala d'attesa ed entra dal telefono come facilitatore.",
   "tableAddBot": "Aggiungi un giocatore bot",
   "upcomingClues": "In arrivo",
@@ -691,7 +705,7 @@ const it: Record<Key, string> = {
   "veil": "Velo",
   "veilAdded": "{name} ha messo un Velo",
   "veilWhat": "Cosa deve restare fuori scena (Velo)?",
-  "videoFailed": "Video non disponibile: uso l'orologio manuale.",
+  "videoFailed": "La colonna sonora non parte.",
   "videoLoading": "Caricamento video…",
   "videoOffset": "Posizione del video a 90:00 (sec)",
   "videoOffsetHint": "Lascia 0 a meno che il video abbia un'introduzione prima del conto alla rovescia.",

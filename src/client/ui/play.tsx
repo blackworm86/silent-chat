@@ -10,6 +10,8 @@ import { t, Btn, Panel, Label, Muted, Avatar, seatName, Countdown, useRemaining,
 import { soundSheet } from './sound';
 import { demoActive, demoSheet } from '../demo';
 import { DealPlan } from './setup';
+import { NotesEditor, NotesSheet } from './notes';
+import { hasNotes, lastNote, useNotesRoom } from '../notes';
 import { rules } from '../../shared/rules';
 import type { View, HandView, CardRef, ChatMsg } from '../../shared/types';
 
@@ -511,6 +513,14 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
   const [text, setText] = useState('');
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [caret, setCaret] = useState(0);
+  const [notesOpen, setNotesOpen] = useState(false);
+  useNotesRoom(v.code);
+  // the notes panel opens on the person you are talking to (their character), else where you left it
+  const openNotes = () => {
+    const cid = conv !== 'group' ? v.players.find((p) => p.seat === Number(conv))?.characterId : null;
+    if (cid) lastNote.value = { group: 'c', sel: 'c_' + cid };
+    setNotesOpen(true);
+  };
   const [replyTo, setReplyTo] = useState<ChatMsg | null>(null);
   const inputEl = useRef<HTMLTextAreaElement>(null);
   const thread = useRef<HTMLDivElement>(null);
@@ -581,6 +591,8 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
               </button>
             );
           })}
+          <span class="conv-sep" aria-hidden="true" />
+          <button class="notebtn" aria-label={t('tabNotes')} onClick={openNotes}><NotebookPen size={22} />{hasNotes() && <span class="dot" />}</button>
         </div>
       )}
       <div class="thread" ref={thread} aria-live="polite">
@@ -623,6 +635,7 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
           }} />
         <button class="send" disabled={!text.trim()} onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()} onClick={submit} aria-label={t('send')}><SendHorizontal size={20} /></button>
       </div>
+      {notesOpen && <NotesSheet v={v} onClose={() => setNotesOpen(false)} />}
       {menu && <MsgMenu s={menu} onClose={() => setMenu(null)}
         onReply={() => { setReplyTo(menu.m); setMenu(null); focusInput(); }}
         onPrivate={() => { switchConv(String(menu.m.from)); setMenu(null); focusInput(); }} />}
@@ -633,29 +646,7 @@ export function ChatTab({ v, groupOnly }: { v: View; groupOnly?: boolean }) {
 // =====================================================================
 // Notes (digital Character Record)
 // =====================================================================
-export function NotesTab({ v }: { v: View }) {
-  const rec = C().characterRecord;
-  const [notes, setNotes] = useLocalState<Record<string, string>>('aim.notes.' + v.code, {});
-  const [grp, setGrp] = useState<'c' | 'l' | 's'>('c');   // one group at a time: the list fits the screen
-  const fld = (k: string, label: string) => (
-    <label class="note-line" key={k}><span>{label}</span><input class="input" value={notes[k] ?? ''} onInput={(e) => setNotes({ ...notes, [k]: (e.target as HTMLInputElement).value })} /></label>
-  );
-  return (
-    <div class="stack">
-      <label class="note-field"><span>{tx(rec.secretLabel).replace(':', '')}</span><textarea class="input" rows={2} value={notes.secret ?? ''} onInput={(e) => setNotes({ ...notes, secret: (e.target as HTMLTextAreaElement).value })} /></label>
-      <div class="seg small">
-        <button class={grp === 'c' ? 'on' : ''} onClick={() => setGrp('c')}>{t('characters')}</button>
-        <button class={grp === 'l' ? 'on' : ''} onClick={() => setGrp('l')}>{t('locations')}</button>
-        <button class={grp === 's' ? 'on' : ''} onClick={() => setGrp('s')}>{t('suspects')}</button>
-      </div>
-      <div class="stack tight">
-        {grp === 'c' && C().characters.map((c: any) => fld('c_' + c.id, c.name))}
-        {grp === 'l' && C().locations.map((l: any) => fld('l_' + l.id, tx(l.name)))}
-        {grp === 's' && C().suspects.map((x: any) => fld('s_' + x.id, x.name))}
-      </div>
-    </div>
-  );
-}
+export function NotesTab({ v }: { v: View }) { return <NotesEditor v={v} />; }
 
 // =====================================================================
 // Host panel

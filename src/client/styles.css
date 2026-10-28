@@ -328,7 +328,7 @@ button.list-row:active { background: var(--ink-2); }
 .convs { display: flex; gap: var(--s1); overflow-x: auto; padding: var(--s2) var(--s3) var(--s1); scrollbar-width: none; flex: none; }
 .convs::-webkit-scrollbar { display: none; }
 /* conversations as avatar bubbles: who has written to you is visible at a glance */
-.conv { appearance: none; border: 0; background: none; color: var(--fg-3); flex: 1 0 60px; max-width: 76px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 2px 0; font: 600 12px/1.2 var(--font-ui); }
+.conv { appearance: none; border: 0; background: none; color: var(--fg-3); flex: 1 1 52px; max-width: 76px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 2px 0; font: 600 12px/1.2 var(--font-ui); }
 .conv-face { position: relative; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; }
 .conv-face .avatar { width: 44px !important; height: 44px !important; }
 .conv.on { color: var(--fg); }
@@ -544,3 +544,30 @@ body:has(.clue-alert) .toasts { top: calc(var(--safe-t) + 60px); }
 .scan-bottom { position: relative; z-index: 2; align-self: stretch; padding: var(--s3) var(--s4) calc(var(--safe-b) + var(--s4)); }
 .scan-off { background: var(--ink-0); }
 .scan-center { margin: auto; padding: 0 var(--s6); gap: var(--s3); }
+
+/* ---------- notes: tab + chat panel ---------- */
+.notes-ed { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; }
+.note-row { appearance: none; border: 0; text-align: left; color: var(--fg); display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 16px; background: var(--ink-1); min-width: 0; width: 100%; font: inherit; }
+.note-row.open { background: var(--ink-2); box-shadow: inset 0 0 0 2px var(--accent-line); }
+.sheet .note-row { background: var(--ink-2); }
+.note-hd { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.note-hd b { font-size: 17px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-pv { color: var(--fg-3); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.note-area { width: 100%; resize: none; border: 0; border-radius: 14px; background: var(--ink-0); box-shadow: inset 0 0 0 1px var(--hair); color: var(--fg); font: 16px/1.4 var(--font-ui); padding: 10px 12px; min-height: 76px; }
+.note-area:focus { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
+.note-area::placeholder { color: var(--fg-3); }
+.sheet .note-area { background: var(--ink-1); }
+.rels { display: flex; flex-direction: column; gap: 6px; }
+.relh { font: 700 12px var(--font-ui); letter-spacing: .02em; color: var(--fg-3); }
+.rel { font-family: var(--font-display); font-style: italic; color: var(--accent); font-size: 15px; line-height: 1.3; }
+.note-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.note-chips .chip { min-height: 40px; padding: 0 12px; font-size: 15px; }
+.note-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-left: 6px; display: inline-block; }
+/* while typing in the Notes tab, give the keyboard's room to the open note only */
+.notes-ed.is-editing .note-row:not(.open) { display: none; }
+/* chat: the notes button sits at the right end of the conversation row, level with the bubbles */
+.conv-sep { width: 1px; align-self: stretch; margin: 6px 4px; background: var(--hair); flex: none; }
+.notebtn { flex: none; margin-left: auto; align-self: center; width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--ink-1); color: var(--fg-2); display: grid; place-items: center; box-shadow: inset 0 0 0 1px var(--hair); position: relative; }
+.notebtn .dot { position: absolute; top: 9px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+.convs { overflow-x: hidden; }
+.conv { flex: 1 1 52px; min-width: 44px; }

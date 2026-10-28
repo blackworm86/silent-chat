@@ -1,5 +1,10 @@
 // UI strings (Italian / English). Game CARD text is NOT here: it lives in the encrypted content pack.
 const en = {
+  "noteFound": "revealed",
+  "hasNote": "has a note",
+  "notePlaceholder": "Write a note…",
+  "relTheirs": "{name}'s line for you",
+  "relYours": "Your line for {name}",
   "scanWrite": "Type the code",
   "scanDeniedHint": "Allow the camera for this site, or type the code by hand.",
   "scanDenied": "The camera is off",
@@ -402,6 +407,11 @@ const en = {
 
 export type Key = keyof typeof en;
 const it: Record<Key, string> = {
+  "noteFound": "scoperto",
+  "hasNote": "ha un appunto",
+  "notePlaceholder": "Scrivi un appunto…",
+  "relTheirs": "La frase di {name} per te",
+  "relYours": "La tua frase per {name}",
   "scanWrite": "Scrivi il codice",
   "scanDeniedHint": "Consenti la fotocamera per questo sito, oppure scrivi il codice a mano.",
   "scanDenied": "La fotocamera è spenta",

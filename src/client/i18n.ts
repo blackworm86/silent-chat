@@ -1,5 +1,14 @@
 // UI strings (Italian / English). Game CARD text is NOT here: it lives in the encrypted content pack.
 const en = {
+  "scanWrite": "Type the code",
+  "scanDeniedHint": "Allow the camera for this site, or type the code by hand.",
+  "scanDenied": "The camera is off",
+  "scanWrong": "This QR isn't from a game",
+  "scanHint": "Point at the QR code on the table",
+  "scanTitle": "Scan",
+  "orTypeCode": "or type the code",
+  "iAmPlayer": "Are you a player?",
+  "scanQr": "Scan the table's QR code",
   "soundErr_file": "This file can't be played on this device. Choose another one.",
   "soundOpenYoutube": "Open on YouTube",
   "soundErr_other": "YouTube reported a playback error.",
@@ -376,7 +385,6 @@ const en = {
   "cancel": "Cancel",
   "joiningGame": "You're joining game {code}.",
   "namePlaceholder": "Your first name",
-  "orJoin": "or join a game",
   "yourGames": "Your games",
   "startedOn": "Created {date}",
   "deleteGame": "Delete game",
@@ -394,6 +402,15 @@ const en = {
 
 export type Key = keyof typeof en;
 const it: Record<Key, string> = {
+  "scanWrite": "Scrivi il codice",
+  "scanDeniedHint": "Consenti la fotocamera per questo sito, oppure scrivi il codice a mano.",
+  "scanDenied": "La fotocamera è spenta",
+  "scanWrong": "Questo QR non è di una partita",
+  "scanHint": "Inquadra il QR sul tavolo",
+  "scanTitle": "Scansiona",
+  "orTypeCode": "oppure scrivi il codice",
+  "iAmPlayer": "Sei un giocatore?",
+  "scanQr": "Scansiona il QR del tavolo",
   "soundErr_file": "Questo file non si può riprodurre su questo dispositivo. Scegline un altro.",
   "soundOpenYoutube": "Apri su YouTube",
   "soundErr_other": "YouTube ha segnalato un errore di riproduzione.",
@@ -770,7 +787,6 @@ const it: Record<Key, string> = {
   "cancel": "Annulla",
   "joiningGame": "Stai entrando nella partita {code}.",
   "namePlaceholder": "Il tuo nome",
-  "orJoin": "oppure entra in una partita",
   "yourGames": "Le tue partite",
   "startedOn": "Creata il {date}",
   "deleteGame": "Elimina partita",

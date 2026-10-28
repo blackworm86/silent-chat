@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { KeyRound, Trash2, Tablet, FlaskConical } from 'lucide-preact';
+import { KeyRound, Trash2, Tablet, FlaskConical, ScanLine } from 'lucide-preact';
 import { unlock, tryStoredPass, content, lang, setLang, forget } from './content';
 import { t, Btn, Section, ListRow, TextLink, ConfirmSheet, Waiting } from './ui/common';
 import { myGames, deleteSession } from './net';
@@ -8,6 +8,7 @@ import { Diag } from './ui/diag';
 import { loadConfig, codeLength, isFirebase } from './config';
 import { TableApp } from './ui/tableapp';
 import { DemoRoom } from './ui/demo';
+import { Scanner, canScan } from './ui/scan';
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const newCode = () => Array.from({ length: codeLength() }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
@@ -93,12 +94,13 @@ function Home() {
         <div class="row between" style={{ paddingTop: 'var(--safe-t)' }}><span class="brand">Silent Chat</span><LangSwitch /></div>
         <div class="hero"><h1>{t('homeTitle')}</h1><p class="lede">{t('homeTag')}</p></div>
         <div class="stack tight">
-          <Btn icon={<Tablet size={18} />} onClick={() => { location.hash = `#/t/${newCode()}/new`; }}>{t('createGame')}</Btn>
+          <Btn kind={canScan() ? 'ghost' : 'primary'} icon={<Tablet size={18} />} onClick={() => { location.hash = `#/t/${newCode()}/new`; }}>{t('createGame')}</Btn>
           <p class="faint small">{t('createHint')}</p>
         </div>
         <MyGames />
-        <div class="or">{t('orJoin')}</div>
+        <div class="or">{t('iAmPlayer')}</div>
         <div class="stack">
+          {canScan() && <><Btn icon={<ScanLine size={20} />} onClick={() => { location.hash = '#/scan'; }}>{t('scanQr')}</Btn><div class="or">{t('orTypeCode')}</div></>}
           <input class="input" value={name} maxLength={20} autocomplete="given-name" placeholder={t('yourName')} onInput={(e) => saveName((e.target as HTMLInputElement).value)} />
           <input class="input code-input" value={code} maxLength={codeLength()} autocapitalize="characters" autocomplete="off" spellcheck={false} placeholder={t('roomCode')}
             onInput={(e) => setCode((e.target as HTMLInputElement).value.toUpperCase())} onKeyDown={(e) => e.key === 'Enter' && join()} />
@@ -167,6 +169,7 @@ export function App() {
   }
   if (hash === '#/diag') return <Diag />;
   if (hash === '#/demo') return <DemoRoom />;
+  if (hash === '#/scan') return <Scanner />;
   if (route) return route.role === 't' ? <TableApp code={route.code} create={route.create} /> : <PlayerRoom code={route.code} create={false} />;
   return <Home />;
 }

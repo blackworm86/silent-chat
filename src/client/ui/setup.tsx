@@ -206,10 +206,15 @@ export function Safety({ v }: { v: View }) {
 
 // ---------- intro + poster ----------
 export function Intro({ v }: { v: View }) {
+  const intro = C().specialCards.intro;
   const physical = v.settings.sources.poster === 'physical';
   const [big, setBig] = useState(false);
   return (
     <>
+      <article class="gcard">
+        <div class="row between"><Label>{tx(intro.title)}</Label>{showUnofficial() && <UnofficialTag />}</div>
+        <div class="prose">{intro.body.map((b: any, i: number) => <p key={i}>{tx(b)}</p>)}</div>
+      </article>
       <Section>
         <div class="poster-row">
           {v.posterIndex !== null && <button class="poster-thumb" aria-label={t('missingPoster')} onClick={() => setBig(true)}><Poster index={v.posterIndex} /></button>}

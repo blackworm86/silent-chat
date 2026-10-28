@@ -1,7 +1,8 @@
 import { useState } from 'preact/hooks';
 import { Download, SendHorizontal } from 'lucide-preact';
 import { send, chat } from '../net';
-import { t, Btn, Panel, Label, Muted, seatName, ActionBar, Waiting, Section, TextLink } from './common';
+import { C, tx } from '../content';
+import { t, Btn, Panel, Label, Muted, seatName, UnofficialTag, showUnofficial, ActionBar, Waiting, Section, TextLink } from './common';
 import { ChatTab } from './play';
 import { VoicemailPlayer } from './sound';
 import type { View } from '../../shared/types';
@@ -42,14 +43,27 @@ function exportChat(v: View) {
 }
 
 export function Debrief({ v }: { v: View }) {
+  const d = C().specialCards.debrief;
   const [name, setName] = useState('');
   const chatApp = v.settings.sources.chat === 'app';
   const real = chat.value.filter((m) => m.kind === 'msg' && m.as === null && !m.deleted);
-  // the debrief card (intro, questions, outro) is read aloud from the box: the app only keeps the real names and the chat export
+  const [tab, setTab] = useState<'talk' | 'names'>('talk');   // two short views instead of one long page
   return (
     <>
-      {chatApp ? (
-        <Section title={t('realNames')}>
+      {chatApp && (
+        <div class="seg">
+          <button class={tab === 'talk' ? 'on' : ''} onClick={() => setTab('talk')}>{tx(d.title)}</button>
+          <button class={tab === 'names' ? 'on' : ''} onClick={() => setTab('names')}>{t('realNames')}{real.length ? ` · ${real.length}` : ''}</button>
+        </div>
+      )}
+      {tab === 'talk' && <article class="gcard">
+        <div class="row between"><Label>{tx(d.title)}</Label>{showUnofficial() && <UnofficialTag />}</div>
+        <p class="italic muted">{tx(d.intro)}</p>
+        <ol class="guide">{d.questions.map((q: any, i: number) => <li key={i}>{tx(q)}</li>)}</ol>
+        <p class="italic muted">{tx(d.outro)}</p>
+      </article>}
+      {tab === 'names' && chatApp && (
+        <Section>
           {real.map((m) => <p key={m.id}><b>{seatName(v, m.from)}</b> {m.text}</p>)}
           <div class="row nowrap">
             <input class="input" value={name} maxLength={60} placeholder={t('realNamePlaceholder')} onInput={(e) => setName((e.target as HTMLInputElement).value)} />
@@ -57,7 +71,8 @@ export function Debrief({ v }: { v: View }) {
           </div>
           <TextLink onClick={() => exportChat(v)}><Download size={16} />{t('exportChat')}</TextLink>
         </Section>
-      ) : <Muted>{t('renameContacts')}</Muted>}
+      )}
+      {!chatApp && <Muted>{t('renameContacts')}</Muted>}
       <Next v={v} label={t('finish')} />
     </>
   );

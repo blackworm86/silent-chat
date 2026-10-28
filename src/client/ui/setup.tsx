@@ -173,9 +173,7 @@ export function Safety({ v }: { v: View }) {
   const all = v.players.every((p) => p.consent);
   return (
     <>
-      <Panel amber><Label>{t('contentWarning')}</Label><p>{t('safetyWarning')}</p></Panel>
       <Section title={t('linesAndVeils')}>
-        <Muted small>{t('linesVeilsHint')}</Muted>
         {v.safety.items.length > 0 && (
           <div class="list">{v.safety.items.map((i) => (
             <ListRow key={i.id} icon={<span class={`tag ${i.kind}`}>{i.kind === 'line' ? t('line') : t('veil')}</span>}
@@ -197,8 +195,7 @@ export function Safety({ v }: { v: View }) {
         </div>
       </Section>
       <details class="notes">
-        <summary><ShieldAlert size={18} class="warn" /><b>{t('xCard')}</b><span class="faint">·</span><DoorOpen size={18} class="faint" /><b>{t('openDoor')}</b><ChevronRight size={18} class="chev" /></summary>
-        <p><ShieldAlert size={18} class="warn" /><span>{t('safetyX')}</span></p>
+        <summary><DoorOpen size={18} class="faint" /><b>{t('openDoor')}</b><ChevronRight size={18} class="chev" /></summary>
         <p><DoorOpen size={18} class="faint" /><span>{t('safetyDoor')}</span></p>
       </details>
       <PhaseBar v={v} blocked={!all} status={`${count(v, (p) => p.consent)} ${t('agreed')}`}
@@ -209,16 +206,10 @@ export function Safety({ v }: { v: View }) {
 
 // ---------- intro + poster ----------
 export function Intro({ v }: { v: View }) {
-  const intro = C().specialCards.intro;
   const physical = v.settings.sources.poster === 'physical';
   const [big, setBig] = useState(false);
   return (
     <>
-      <article class="gcard">
-        <div class="row between"><Label>{tx(intro.title)}</Label>{showUnofficial() && <UnofficialTag />}</div>
-        <div class="prose">{intro.body.map((b: any, i: number) => <p key={i}>{tx(b)}</p>)}</div>
-        <p class="accent"><b>{tx(intro.instruction)}</b></p>
-      </article>
       <Section>
         <div class="poster-row">
           {v.posterIndex !== null && <button class="poster-thumb" aria-label={t('missingPoster')} onClick={() => setBig(true)}><Poster index={v.posterIndex} /></button>}
@@ -293,7 +284,7 @@ export function Characters({ v }: { v: View }) {
           {showUnofficial() && <UnofficialTag />}
           {!self.isHost && <TextLink onClick={() => send({ type: 'unpickCharacter' })}>{t('change')}</TextLink>}
         </article>
-      ) : <Muted>{t('chooseCharacter')}</Muted>}
+      ) : null}
       <div class="list">
         {rules.characters.filter((ch) => ch.id !== self.characterId).map((ch) => {
           const owner = taken.get(ch.id);
@@ -306,7 +297,7 @@ export function Characters({ v }: { v: View }) {
                 {owner ? <span class="tag accent">{owner.name}</span> : ch.facilitator ? <span class="tag">{t('facilitator')}</span> : null}
                 {free && <button class="btn ghost small auto" onClick={(e) => { e.preventDefault(); send({ type: 'pickCharacter', id: ch.id }); }}>{t('pick')}</button>}
               </summary>
-              <div class="char-more">{showAll ? <CharacterBody id={ch.id} /> : <><Label>{t('background')}</Label><p>{tx(c.background)}</p><p class="faint small">{t('secretHidden')}</p></>}</div>
+              <div class="char-more">{showAll ? <CharacterBody id={ch.id} /> : <><Label>{t('background')}</Label><p>{tx(c.background)}</p></>}</div>
             </details>
           );
         })}
@@ -361,10 +352,7 @@ export function Turns({ v, kind }: { v: View; kind: 'intros' | 'hunches' }) {
   const myTurn = cur === seat && !allDone;
   return (
     <>
-      <Panel amber>
-        <p>{kind === 'intros' ? t('introPrompt') : t('hunchPrompt')}</p>
-        {kind === 'intros' && myChar && <><Label>{t('background')}</Label><p>{tx(character(myChar)!.background)}</p></>}
-      </Panel>
+      {kind === 'intros' && myChar && <Panel amber><Label>{t('background')}</Label><p>{tx(character(myChar)!.background)}</p></Panel>}
       {kind === 'hunches' && (
         <div class="two-col">
           <Section title={t('suspects')}>{C().suspects.map((s: any) => <div class="mini" key={s.id}><b>{s.name}</b><br /><span class="faint small">{tx(s.role)}</span></div>)}</Section>
@@ -407,7 +395,6 @@ export function Relations({ v }: { v: View }) {
           <button class={about ? 'on' : ''} onClick={() => setAbout(true)}>{t('relationsToYou')} · {v.relationsToMe.length}</button>
         </div>
       )}
-      {!about && <Muted small>{t('relationsHint')}</Muted>}
       {!about && d && ([0, 1] as const).map((l) => (
         <article class="gcard" key={l}>
           <p class="rel">“{tx(d.relationships[l])}”</p>
@@ -478,7 +465,6 @@ export function Voicemail({ v }: { v: View }) {
   return (
     <>
       <Panel amber>
-        <p>{t('voicemailIntro')}</p>
         {ch && <><Label>{t('voicemailPrompt')}</Label><p>{tx(ch.voicemailPrompt)}</p><Label>{t('secret')}</Label><p>{tx(ch.secret)}</p></>}
       </Panel>
       {digital ? <Recorder sent={self.vm} /> : <Muted>{t('vmPhysical')}</Muted>}
@@ -510,7 +496,7 @@ export function Deal({ v }: { v: View }) {
     <>
       <Section title={t('yourClues')}>
         <div class="ts-row">{mine.map((ts) => <span class="ts" key={ts}>{ts}</span>)}</div>
-        <Muted small>{physical ? t('dealPhysicalHint') : t('dealDigitalHint')}</Muted>
+        {physical && <Muted small>{t('dealPhysicalHint')}</Muted>}
       </Section>
       {physical && v.plan && <DealPlan v={v} />}
       <PhaseBar v={v} />

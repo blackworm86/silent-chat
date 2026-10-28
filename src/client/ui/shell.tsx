@@ -163,7 +163,6 @@ export function Shell({ v }: { v: View }) {
       {sheet === 'notes' && <Modal title={t('tabNotes')} onClose={close}><NotesTab v={v} /></Modal>}
       {sheet === 'safety' && (
         <Modal title={t('safetyTools')} onClose={close}>
-          <p class="muted">{t('safetyX')}</p>
           <p class="muted">{t('safetyDoor')}</p>
           <Section title={t('linesAndVeils')}>
             {v.safety.items.length === 0 ? <Muted small>{t('noneYet')}</Muted>

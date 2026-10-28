@@ -493,7 +493,6 @@ export function SafetySheet({ onClose }: { onClose: () => void }) {
   const ok = () => { if (text.trim()) { send({ type: 'safety', kind, text: text.trim() }); onClose(); } };
   return (
     <Modal title={t('addLineVeil')} onClose={onClose}>
-      <Muted small>{t('linesVeilsHint')}</Muted>
       <div class="seg">
         <button class={kind === 'line' ? 'on' : ''} onClick={() => setKind('line')}>{t('line')}</button>
         <button class={kind === 'veil' ? 'on' : ''} onClick={() => setKind('veil')}>{t('veil')}</button>
